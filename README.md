@@ -1,38 +1,37 @@
-# FastFood Order — Вебресурс онлайн-замовлення їжі
+# FastFood — Web resource for online food ordering
 
-## Опис
+## Description
 
-Цей проєкт є результатом кваліфікаційної роботи бакалавра за спеціальністю **122 Комп’ютерні науки** в Національному університеті «Одеська Політехніка».
+This project is the result of the bachelor's qualification work in the specialty **122 Computer Science** at the National University "Odesa Polytechnic".
 
-Проєкт реалізує вебресурс для онлайн-замовлення їжі швидкого приготування з використанням **Laravel**, підтримкою **Stripe** для онлайн-оплати, базою даних **MySQL** і адаптивним інтерфейсом на **Bootstrap**.
+The project implements a web resource for online ordering of fast food using **Laravel**, **Stripe** support for online payment, **MySQL** database and an adaptive interface on **Bootstrap**.
 
-## Основні можливості
+## Main features
 
-- Реєстрація та авторизація користувачів
-- Перегляд меню закладів
-- Додавання продуктів у кошик
-- Оформлення онлайн-замовлення
-- Оплата замовлення через Stripe
-- Відстеження замовлень
-- Безпечне зберігання даних користувачів
+- User registration and authorization
+- View restaurant menus
+- Add products to cart
+- Place online orders
+- Pay for orders via Stripe
+- Track orders
+- Secure storage of user data
 
-## Технології
+## Technologies
 
 - **Backend:** PHP 8.x, Laravel 10
 - **Frontend:** HTML5, CSS3, Blade, Bootstrap
-- **База даних:** MySQL
-- **Оплата:** Stripe API
-- **Середовище розробки:** Visual Studio Code
+- **Database:** MySQL
+- **Payment:** Stripe API
+- **Development environment:** Visual Studio Code
 
-## Архітектура
+## Architecture
 
-Проєкт реалізовано за принципами **клієнт-серверної архітектури** з використанням архітектурного шаблону **MVC**.
+The project is implemented according to the principles of **client-server architecture** using the **MVC** architectural pattern.
 
-## Вимоги до встановлення
+## Installation requirements
 
 - PHP >= 8.1
 - Composer
 - MySQL
-- Node.js та npm (для frontend-залежностей)
-- Stripe API ключі
-
+- Node.js and npm (for frontend dependencies)
+- Stripe API keys
