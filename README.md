@@ -2,9 +2,7 @@
 
 ## Description
 
-This project is the result of the bachelor's qualification work in the specialty **122 Computer Science** at the National University "Odesa Polytechnic".
-
-The project implements a web resource for online ordering of fast food using **Laravel**, **Stripe** support for online payment, **MySQL** database and an adaptive interface on **Bootstrap**.
+The project implements a web resource for online ordering of fast food using **Laravel**, **Stripe** online payment support, **MySQL** database, and a responsive interface on **Bootstrap**.
 
 ## Main features
 
