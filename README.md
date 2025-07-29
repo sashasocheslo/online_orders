@@ -31,5 +31,4 @@ The project is implemented according to the principles of **client-server archit
 - PHP >= 8.1
 - Composer
 - MySQL
-- Node.js and npm (for frontend dependencies)
 - Stripe API keys
