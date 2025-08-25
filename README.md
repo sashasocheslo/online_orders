@@ -64,8 +64,8 @@
 ### Інструкція з запуску
 ```bash
 # 1. Клонувати репозиторій
-git clone https://github.com/username/fastfood.git
-cd fastfood
+git clone https://github.com/sashasocheslo/online_orders.git
+cd online_orders
 
 # 2. Запустити контейнери
 docker-compose up -d
