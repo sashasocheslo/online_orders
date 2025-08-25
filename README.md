@@ -64,7 +64,7 @@
 ### Інструкція з запуску
 ```bash
 # 1. Клонувати репозиторій
-git clone https://github.com/sashasocheslo/online_orders.git)](https://github.com/sashasocheslo/online_orders.git
+git clone https://github.com/sashasocheslo/online_orders.git
 cd online_orders
 
 # 2. Запустити контейнери
