@@ -68,21 +68,25 @@
    git clone https://github.com/username/fastfood.git
    cd fastfood
 
-2. Запустити контейнери
-docker-compose up -d
+2. Запустити контейнери:
+```bash
+    docker-compose up -d
 
-3. Виконати міграції та сідери
-docker-compose exec app php artisan migrate --seed
+3. Виконати міграції та сідери:
+```bash
+    docker-compose exec app php artisan migrate --seed
 
-4. Зупинити контейнери
-docker-compose down
+4. Зупинити контейнери:
+```bash
+    docker-compose down
 
 5. Додаткові команди
-# Встановити залежності
-docker-compose exec app composer install
+```bash
+    # Встановити залежності
+    docker-compose exec app composer install
 
-# Кешувати конфігурації
-docker-compose exec app php artisan config:cache
+    # Кешувати конфігурації
+    docker-compose exec app php artisan config:cache
 
-# Запустити Tinker для роботи з моделями
-docker-compose exec app php artisan tinker
+    # Запустити Tinker для роботи з моделями
+    docker-compose exec app php artisan tinker
