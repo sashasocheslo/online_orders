@@ -1,34 +1,88 @@
-# FastFood — Web resource for online food ordering
+# 🍔 FastFood — Вебресурс для онлайн-замовлення їжі
 
-## Description
+## 📌 Опис
+**FastFood** — це вебресурс для онлайн-замовлення швидкої їжі, розроблений на **Laravel** з підтримкою онлайн-оплат через **Stripe**.  
+Проєкт використовує **Docker** для зручного розгортання та включає **RESTful API** для взаємодії з додатком.
 
-The project implements a web resource for online ordering of fast food using **Laravel**, **Stripe** online payment support, **MySQL** database, and a responsive interface on **Bootstrap**.
+---
 
-## Main features
+## Основні можливості
+- Реєстрація та авторизація користувачів  
+- Перегляд меню ресторанів  
+- Отримання списку продуктів у меню
+- Оновлення інформації про товар
+- Видалення товару
+- Додавання товарів у кошик  
+- Оформлення та оплата замовлень через **Stripe**  
+- Перегляд історії замовлень (реалізовано через кошик)  
+- Додавання та видалення коментарів до товарів (для авторизованих користувачів)  
+- Реалізація пошуку товару за допомогою заповнення форми
+- Фільтрація за категорією
+- Фільтрація за ціновим діапазоном
+- RESTful API для взаємодії з меню, товарами, коментарями та кошиком  
 
-- User registration and authorization
-- View restaurant menus
-- Add products to cart
-- Place online orders
-- Pay for orders via Stripe
-- Track orders
-- Secure storage of user data
+---
 
-## Technologies
+## Технології
+- **Backend:** PHP 8.x, Laravel 11 
+- **Frontend:** Blade, Bootstrap 5, HTML5, CSS3  
+- **База даних:** MariaDB / MySQL  
+- **API платежів:** Stripe  
+- **Інфраструктура:** Docker, Docker Compose  
+- **IDE:** Visual Studio Code  
 
-- **Backend:** PHP 8.x, Laravel 10
-- **Frontend:** HTML5, CSS3, Blade, Bootstrap
-- **Database:** MySQL
-- **Payment:** Stripe API
-- **Development environment:** Visual Studio Code
+---
 
-## Architecture
+## Архітектура
+- Клієнт-серверна архітектура  
+- Використано **MVC-патерн** (Model-View-Controller)  
+- **RESTful API** для роботи з даними  
 
-The project is implemented according to the principles of **client-server architecture** using the **MVC** architectural pattern.
+---
 
-## Installation requirements
+## RESTful API — основні маршрути
 
-- PHP >= 8.1
-- Composer
-- MySQL
-- Stripe API keys
+- `GET /menus` — отримати список меню  
+- `GET /menus/{id}` — переглянути конкретне меню  
+- `GET /menus/{id}/products` — список продуктів у меню  
+- `POST /menus/{id}/products` — додати продукт у меню  
+- `PUT /menus/{id}/products/{id}` — оновити продукт  
+- `DELETE /menus/{id}/products/{id}` — видалити продукт  
+- `POST /products/{id}/comments` — додати коментар  
+- `GET /cart-products` — перегляд кошика  
+- `POST /payments` — оплата через Stripe  
+
+---
+
+## Docker — запуск проєкту
+
+### Вимоги
+- **Docker**  
+- **Docker Compose**  
+- **PHP >= 8.1**, **Composer** (для локальної роботи без контейнерів)  
+
+### Інструкція з запуску
+
+1. Клонувати репозиторій:  
+   ```bash
+   git clone https://github.com/username/fastfood.git
+   cd fastfood
+
+2. Запустити контейнери
+docker-compose up -d
+
+3. Виконати міграції та сідери
+docker-compose exec app php artisan migrate --seed
+
+4. Зупинити контейнери
+docker-compose down
+
+5. Додаткові команди
+# Встановити залежності
+docker-compose exec app composer install
+
+# Кешувати конфігурації
+docker-compose exec app php artisan config:cache
+
+# Запустити Tinker для роботи з моделями
+docker-compose exec app php artisan tinker

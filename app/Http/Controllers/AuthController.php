@@ -2,17 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use Illuminate\Support\Carbon;
+use App\Services\AuthServiceInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+
 
 class AuthController extends Controller
 {
-    public function loginForm()
+    private AuthServiceInterface $authService;
+
+    public function __construct(AuthServiceInterface $authService)
     {
+        $this->authService = $authService;
+    }
+
+    public function loginForm(Request $request)
+    {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'HTML login form is not available for API. Use POST /auth/login.'
+            ], 406);
+        }
         return view('auth.login');
     }
 
@@ -26,16 +35,30 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->filled('remember');
 
-        if (Auth::attempt($credentials, $remember)) { // Перевіряємо, чи введені облікові дані правильні
-            return redirect()->intended('/'); // Якщо успішно, перенаправляємо користувача на запитувану сторінку або на головну
-        } else {
-            return redirect()->back() // Якщо автентифікація не вдалася, повертаємо користувача назад
-                ->with('error', 'Invalid credentials'); // Додаємо флеш-повідомлення про помилку
+        if ($this->authService->login($credentials, $remember)) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Login successful',
+                    'user' => \Illuminate\Support\Facades\Auth::user(),
+                ], 200);
+            }
+            return redirect()->intended('/');
         }
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        return redirect()->back()->with('error', 'Невірні облікові дані');
     }
 
-    public function registerForm()
+    public function registerForm(Request $request)
     {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'HTML register form is not available for API. Use POST /auth/register.'
+            ], 406);
+        }
         return view('auth.register');
     }
 
@@ -47,26 +70,30 @@ class AuthController extends Controller
             'password' => 'required|string|confirmed|min:8',
         ]);
 
-        $user = User::create([
-            'name' => $request->input('name'),
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'email_verified_at' => Carbon::now(),
-        ]);
-
         $remember = $request->filled('remember');
-        Auth::login($user, $remember);
+        $this->authService->register($request->only(['name', 'email', 'password']), $remember);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'User registered successfully',
+                'user' => \Illuminate\Support\Facades\Auth::user(),
+            ], 201);
+        }
 
         return redirect()->intended('/');
     }
 
-    public function destroy()
+    public function destroy(Request $request)
     {
-        Auth::logout();
+        $this->authService->logout();
 
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return redirect('/');
+        if ($request->wantsJson()) {
+            return response()->json(null, 204);
+        }
+
+        return redirect()->route('menu.index');
     }
 }

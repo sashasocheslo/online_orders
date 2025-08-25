@@ -2,64 +2,56 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\CartProduct;
-use App\Models\Product;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
+use App\Services\CartProductServiceInterface;
+use App\Models\CartProduct;
 
 class CartProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Product $product)
+    private CartProductServiceInterface $cartService;
+
+    public function __construct(CartProductServiceInterface $cartService)
     {
-        Gate::authorize('add', $product);
-        return view('cart_product.index',
-        ['cart_products' => CartProduct::query()->get()]);
+        $this->cartService = $cartService;
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Product $product, Request $request)
+    public function index(Request $request)
     {
-        Gate::authorize('add', $product);
+        $cartProducts = $this->cartService->listCartProducts();
 
+        if ($request->wantsJson()) {
+            return response()->json($cartProducts, 200);
+        }
+
+        return view('cart_product.index', ['cart_products' => $cartProducts]);
+    }
+
+    public function store(Request $request)
+    {
         $validated = $request->validate([
             'cart_id' => 'required|exists:carts,id',
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $cartProduct = CartProduct::where('cart_id', $validated['cart_id'])
-        ->where('product_id', $validated['product_id'])
-        ->first();
+        $this->cartService->addProduct($validated['cart_id'], $validated['product_id']);
 
-        if ($cartProduct) {
-            $cartProduct->increment('quantity');
-        } else {
-
-            $product = Product::findOrFail($validated['product_id']);
-
-            \App\Models\CartProduct::create([
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Product added to cart',
                 'cart_id' => $validated['cart_id'],
                 'product_id' => $validated['product_id'],
-                'image' => $product->image,
-                'quantity' => 1,
-            ]);
+            ], 201);
         }
+
         return redirect()->back();
     }
 
-    public function destroy(CartProduct $cartProduct, Product $product)
+    public function destroy(CartProduct $cartProduct, Request $request)
     {
-        Gate::authorize('add', $product);
-        if ($cartProduct->quantity > 1) {
-            $cartProduct->decrement('quantity');
-        } else {
-            $cartProduct->delete();
+        $this->cartService->removeProduct($cartProduct);
+
+        if ($request->wantsJson()) {
+            return response()->json(null, 204);
         }
 
         return redirect()->back();

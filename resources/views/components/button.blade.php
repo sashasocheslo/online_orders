@@ -9,7 +9,6 @@
             (str($c)->contains('btn-size') ? 'rounded-pill' :
             (str($c)->contains('btn-buy') ? 'rounded px-4 py-2 fs-6' : 'rounded')),
 
-            // Цвет кнопки
             str($c)->contains('btn-danger-custom') ? 'btn-danger text-white' :
             (str($c)->contains('btn-close') ? 'btn-close bg-secondary-subtle text-secondary btn-outline-secondary' :
             (str($c)->contains('btn-quantity-minus') ? 'bg-light text-secondary border-0' :

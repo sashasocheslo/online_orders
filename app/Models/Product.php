@@ -32,6 +32,11 @@ class Product extends Model
         return $this->hasMany(CartProduct::class);
     }
 
+    public function comments() : HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
     public function scopeSearch(Builder|QueryBuilder $query, string $search) : Builder|QueryBuilder
     {
         return $query->where(function($query) use($search) {
@@ -43,12 +48,23 @@ class Product extends Model
         });
     }
 
-    public function scopeCategories(Builder|QueryBuilder $query, array $categories)
+   public function scopeCategories(Builder|QueryBuilder $query, array $filters)
     {
-        return $query->when($categories['categories'] ?? null,
-            fn ($query, $activeCategories) =>
-                $query->where('category_id', $activeCategories));
+        return $query
+            ->when($filters['categories'] ?? null,
+                fn ($query, $activeCategories) =>
+                    $query->whereIn('category_id', (array) $activeCategories)
+            )
+            ->when($filters['min_price'] ?? null,
+                fn ($query, $minPrice) =>
+                    $query->where('price', '>=', $minPrice)
+            )
+            ->when($filters['max_price'] ?? null,
+                fn ($query, $maxPrice) =>
+                    $query->where('price', '<=', $maxPrice)
+            );
     }
+
 
     public function hasUserAdd(User $user): bool
     {

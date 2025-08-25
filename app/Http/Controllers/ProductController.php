@@ -2,43 +2,118 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\Client;
+use App\Models\Comment;
+use App\Services\ProductServiceInterface;
 use App\Models\Menu;
+use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
+    private ProductServiceInterface $productService;
+
+    public function __construct(ProductServiceInterface $productService)
+    {
+        $this->productService = $productService;
+    }
+
     public function index(Menu $menu, Request $request)
     {
-        $search = $request->input('search');
-        $activeCategories = $request->input('categories');
+        $data = $this->productService->getProducts($menu, $request);
 
-        $products = $menu->products()
-            ->when($search, fn($query) => $query->search($search))
-            ->when($activeCategories, fn($query) => $query->categories(['categories' => $activeCategories]))
-            ->get();
-
-        $cart = $this->getOrCreateCart();
+        if ($request->wantsJson()) {
+            return response()->json([
+                'products' => $data['products'],
+                'cart' => $data['cart'],
+            ], 200);
+        }
 
         return view('components.product.index', [
-            'products' => $products,
-            'cart' => $cart,
+            'products' => $data['products'],
+            'cart' => $data['cart'],
         ]);
     }
 
-    private function getOrCreateCart()
+    public function create(Menu $menu, Request $request)
     {
-        $user = Auth::user();
-
-        if ($user) {
-            return $user->cart ?? Cart::create(['user_id' => $user->id]);
-        } else {
-            $client = Client::find(session('client_id')) ?? Client::create();
-            session(['client_id' => $client->id]);
-            return null;
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Not supported for API. Use POST /menus/{menu}/products'
+            ], 405);
         }
+
+        $data = $this->productService->createProduct($menu);
+        return view('products.create', $data);
+    }
+
+    public function store(Menu $menu, Request $request)
+    {
+        $this->productService->storeProduct($menu, $request);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Product created'], 201);
+        }
+
+        return redirect()->route('menu.show', $menu)->with('success', 'Продукт додано!');
+    }
+
+    public function edit(Menu $menu, Product $product, Request $request)
+    {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Not supported for API. Use PUT/PATCH /menus/{menu}/products/{product}'
+            ], 405);
+        }
+
+        $data = $this->productService->editProduct($menu, $product);
+        return view('products.edit', $data);
+    }
+
+    public function update(Menu $menu, Product $product, Request $request)
+    {
+        $this->productService->updateProduct($menu, $product, $request);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Product updated'], 200);
+        }
+
+        return redirect()->route('menu.show', $menu)->with('success', 'Продукт оновлено!');
+    }
+
+    public function storeComment(Menu $menu, Product $product, Request $request)
+    {
+        $this->productService->addComment($product, $request);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Comment added'], 201);
+        }
+
+        return redirect()->back()->with('success', 'Коментар додано!');
+    }
+
+    public function destroyComment(Comment $comment, Request $request)
+    {
+        if ($this->productService->deleteComment($comment)) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Comment deleted'], 200);
+            }
+            return back()->with('success', 'Коментар видалено');
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        return back()->with('error', 'Ви не можете видалити цей коментар');
+    }
+
+    public function destroy(Menu $menu, Product $product, Request $request)
+    {
+        $this->productService->deleteProduct($menu, $product);
+
+        if ($request->wantsJson()) {
+            return response()->json(null, 204);
+        }
+
+        return redirect()->route('menu.show', $menu)->with('success', 'Продукт видалено!');
     }
 }

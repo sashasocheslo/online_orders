@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\PaymentGatewayInterface;
+use App\Services\OrderServiceInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderConfirmation;
@@ -10,16 +12,36 @@ use Illuminate\Http\Request;
 
 class StripeController extends Controller
 {
+    private PaymentGatewayInterface $paymentGateway;
+    private OrderServiceInterface $orderService;
+
+    public function __construct(PaymentGatewayInterface $paymentGateway, OrderServiceInterface $orderService)
+    {
+        $this->paymentGateway = $paymentGateway;
+        $this->orderService = $orderService;
+    }
+
     public function index(Request $request)
     {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Not supported for API. Use POST /payments'
+            ], 405);
+        }
+
         return view('cart_product.order_form', [
             'amount' => $request->amount,
             'quantity' => $request->quantity,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Not supported for API. Use POST /payments'
+            ], 405);
+        }
         return view('cart_product.order_form');
     }
 
@@ -29,50 +51,31 @@ class StripeController extends Controller
             'phone_number' => 'required|string|max:20',
             'delivery_address' => 'required|string|max:255',
             'country' => 'required|string|max:100',
+            'amount' => 'required|numeric|min:0.5',
         ]);
 
-        $email = Auth::user()->email;
-        Mail::to($email)->send(new OrderConfirmation(
-            $validated['phone_number'],
-            $validated['delivery_address'],
-            $validated['country']
-        ));
+        $this->orderService->sendOrderConfirmation($validated);
 
-        $stripe = new \Stripe\StripeClient(env("STRIPE_SECRET"));
+        $checkoutUrl = $this->paymentGateway->createPayment($request->amount);
 
-        $amountUah = $request->amount;
-        $rate = 42.9549;
-        $amountUsd = $amountUah / $rate;
-        $amountCents = (int)($amountUsd * 100);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Payment created',
+                'checkout_url' => $checkoutUrl,
+            ], 201);
+        }
 
-        $successUrl = route('stripe.payment.success') . '?session_id={CHECKOUT_SESSION_ID}';
-
-        $response = $stripe->checkout->sessions->create([
-            'success_url' => $successUrl,
-            'cancel_url' => url('/cart'),
-            'line_items' => [[
-                'price_data' => [
-                    'currency' => 'usd',
-                    'product_data' => [
-                        'name' => 'Замовлення з кошика',
-                    ],
-                    'unit_amount' => $amountCents,
-                ],
-                'quantity' => 1,
-            ]],
-            'mode' => 'payment',
-        ]);
-
-        return redirect($response['url']);
+        return redirect($checkoutUrl);
     }
 
     public function success(Request $request)
     {
-        $stripe = new \Stripe\StripeClient(env("STRIPE_SECRET"));
+        $this->paymentGateway->confirmPayment($request->session_id);
 
-        $response = $stripe->checkout->sessions->retrieve(
-            $request->session_id,[]);
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Payment confirmed'], 200);
+        }
 
-            return redirect()->back()->with('success', 'Оплата пройшла успішно');
+        return redirect()->back()->with('success', 'Оплата пройшла успішно');
     }
 }

@@ -2,46 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use Exception;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use App\Services\SocialiteServiceInterface;
+use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 
+/**
+ * Google OAuth: повертає або редірект, або JSON з URL для редіректу.
+ */
 class SocialiteController extends Controller
 {
-    public function googleLogin()
+    private SocialiteServiceInterface $socialiteService;
+
+    public function __construct(SocialiteServiceInterface $socialiteService)
     {
-        return Socialite::driver('google')->redirect();
+        $this->socialiteService = $socialiteService;
     }
 
-    public function googleAuthentication()
+    public function googleLogin(Request $request)
     {
-        try {
-            $googleUser = Socialite::driver('google')->user();
+        $redirect = Socialite::driver('google')->redirect();
 
-            $user = User::where('google_id', $googleUser->id)->first();
-
-            if ($user) {
-                Auth::login($user);
-                return redirect()->route('menu.index');
-            } else {
-                $userData =  User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'password' => Hash::make('password'),
-                    'google_id' => $googleUser->id,
-                ]);
-
-                if($userData) {
-                    Auth::login($userData);
-                    return redirect()->route('menu.index');
-                }
-            }
-
-        } catch (Exception $e) {
-            dd($e);
+        if ($request->wantsJson()) {
+            return response()->json(['url' => $redirect->getTargetUrl()], 200);
         }
+
+        return $redirect;
+    }
+
+    public function googleAuthentication(Request $request)
+    {
+        $user = $this->socialiteService->loginWithGoogle();
+
+        if ($request->wantsJson()) {
+            if ($user) {
+                return response()->json([
+                    'message' => 'Google authentication successful',
+                    'user' => $user,
+                ], 200);
+            }
+            return response()->json(['message' => 'Google authentication failed'], 401);
+        }
+
+        if ($user) {
+            return redirect()->route('menu.index');
+        }
+
+        return redirect()->route('login')->with('error', 'Помилка авторизації через Google.');
     }
 }

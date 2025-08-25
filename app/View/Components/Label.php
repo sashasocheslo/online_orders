@@ -8,9 +8,6 @@ use Illuminate\Contracts\View\View;
 
 class Label extends Component
 {
-    /**
-     * Create a new component instance.
-     */
     public function __construct(
         public ?string $for = '',
         public ?bool $required = false
@@ -19,9 +16,6 @@ class Label extends Component
 
     }
 
-    /**
-     * Get the view / contents that represent the component.
-     */
     public function render(): View|Closure|string
     {
         return view('components.label');

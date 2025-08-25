@@ -18,9 +18,38 @@
                             <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ps-3 text-secondary"></i>
                             <x-text-input name="search" value="{{ request('search') }}" placeholder="Шукати в {!! $menu->name !!}" form-id="category-form" class="ps-5" />
                         </div>
+
+                        {{-- Мінімальна ціна --}}
+                        <div class="flex-shrink-0">
+                            <x-text-input
+                                type="number"
+                                name="min_price"
+                                value="{{ request('min_price') }}"
+                                placeholder="Мін. ціна"
+                                class="w-100"
+                            />
+                        </div>
+
+                        {{-- Максимальна ціна --}}
+                        <div class="flex-shrink-0">
+                            <x-text-input
+                                type="number"
+                                name="max_price"
+                                value="{{ request('max_price') }}"
+                                placeholder="Макс. ціна"
+                                class="w-100"
+                            />
+                        </div>
+
                         <x-button>
                             Знайти
                         </x-button>
+
+                        @if(request()->hasAny(['search', 'min_price', 'max_price', 'categories']))
+                            <a href="{{ route('menu.show', $menu) }}" class="btn btn-outline-secondary">
+                                Скинути
+                            </a>
+                        @endif
                     </form>
                 </x-card>
 
@@ -39,6 +68,21 @@
                             @endif
                         @endforeach
                     </div>
+                </x-card>
+
+               <x-card class="mt-2 text-end">
+                    <a href="{{ route('menu.products.create', $menu) }}"
+                    class="btn {{
+                        $menu->name === "McDonald's" ? 'btn-warning' :
+                        ($menu->name === "Domino\'s" ? 'btn-danger' :
+                        ($menu->name === "KFC" ? 'btn-danger' : 'btn-primary'))
+                    }}">
+                        {{
+                            $menu->name === "McDonald's" ? '🍔 Додати продукт у McDonald’s' :
+                            ($menu->name === "Domino\'s" ? '🍕 Додати піцу у Domino’s' :
+                            ($menu->name === "KFC" ? '🍗 Додати страву у KFC' : '➕ Додати продукт'))
+                        }}
+                    </a>
                 </x-card>
 
                 <x-card class="mt-3">
