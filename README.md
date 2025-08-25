@@ -82,11 +82,14 @@ DB_PASSWORD=root
 # 3. Встановити залежності
 docker-compose run --rm app composer install
 
-# 4. Запустити контейнери
+# 4. Згенерувати ключ додатку
+docker-compose run --rm app php artisan key:generate
+
+# 5. Запустити контейнери
 docker-compose up -d
 
-# 5. Виконати міграції та сідери
+# 6. Виконати міграції та сідери
 docker-compose exec app php artisan migrate --seed
 
-# 6. Зупинити контейнери
+# 7. Зупинити контейнери
 docker-compose down
