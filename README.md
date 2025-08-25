@@ -67,21 +67,26 @@
 git clone https://github.com/sashasocheslo/online_orders.git
 cd online_orders
 
-# 2. Запустити контейнери
+# 2. Створити файл .env на основі .env.example
+cp .env.example .env
+
+У файлі .env потрібно вказати параметри підключення до бази даних:
+
+DB_CONNECTION=mysql
+DB_HOST=mariadb_db
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=root
+
+# 3. Встановити залежності
+docker-compose run --rm app composer install
+
+# 4. Запустити контейнери
 docker-compose up -d
 
-# 3. Виконати міграції та сідери
+# 5. Виконати міграції та сідери
 docker-compose exec app php artisan migrate --seed
 
-# 4. Зупинити контейнери
+# 6. Зупинити контейнери
 docker-compose down
-
-# 5. Додаткові команди
-# Встановити залежності
-docker-compose exec app composer install
-
-# Кешувати конфігурації
-docker-compose exec app php artisan config:cache
-
-# Запустити Tinker для роботи з моделями
-docker-compose exec app php artisan tinker
