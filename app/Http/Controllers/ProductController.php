@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
-use App\Services\ProductServiceInterface;
 use App\Models\Menu;
 use App\Models\Product;
+use App\Services\Contracts\ProductServiceInterface;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -38,11 +38,12 @@ class ProductController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Not supported for API. Use POST /menus/{menu}/products'
+                'message' => 'Not supported for API. Use POST /menus/{menu}/products',
             ], 405);
         }
 
         $data = $this->productService->createProduct($menu);
+
         return view('products.create', $data);
     }
 
@@ -61,11 +62,12 @@ class ProductController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Not supported for API. Use PUT/PATCH /menus/{menu}/products/{product}'
+                'message' => 'Not supported for API. Use PUT/PATCH /menus/{menu}/products/{product}',
             ], 405);
         }
 
         $data = $this->productService->editProduct($menu, $product);
+
         return view('products.edit', $data);
     }
 
@@ -97,12 +99,14 @@ class ProductController extends Controller
             if ($request->wantsJson()) {
                 return response()->json(['message' => 'Comment deleted'], 200);
             }
+
             return back()->with('success', 'Коментар видалено');
         }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
+
         return back()->with('error', 'Ви не можете видалити цей коментар');
     }
 

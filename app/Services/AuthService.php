@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Contracts\AuthServiceInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Carbon;
 
 class AuthService implements AuthServiceInterface
 {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\SocialiteServiceInterface;
+use App\Services\Contracts\SocialiteServiceInterface;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -40,6 +40,7 @@ class SocialiteController extends Controller
                     'user' => $user,
                 ], 200);
             }
+
             return response()->json(['message' => 'Google authentication failed'], 401);
         }
 

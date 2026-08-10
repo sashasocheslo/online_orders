@@ -5,22 +5,21 @@ namespace App\Providers;
 use App\Models\Product;
 use App\Policies\ProductPolicy;
 use App\Services\AuthService;
-use App\Services\AuthServiceInterface;
 use App\Services\CartProductService;
-use App\Services\CartProductServiceInterface;
+use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\CartProductServiceInterface;
+use App\Services\Contracts\MenuServiceInterface;
+use App\Services\Contracts\OrderServiceInterface;
+use App\Services\Contracts\PaymentGatewayInterface;
+use App\Services\Contracts\ProductServiceInterface;
+use App\Services\Contracts\SocialiteServiceInterface;
 use App\Services\MenuService;
-use App\Services\MenuServiceInterface;
+use App\Services\OrderService;
+use App\Services\ProductService;
+use App\Services\SocialiteService;
+use App\Services\StripeService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use App\Services\StripeService;
-use App\Services\PaymentGatewayInterface;
-use App\Services\OrderService;
-use App\Services\OrderServiceInterface;
-use App\Services\ProductService;
-use App\Services\ProductServiceInterface;
-use App\Services\SocialiteService;
-use App\Services\SocialiteServiceInterface;
-use Laravel\Socialite\SocialiteServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,10 +37,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SocialiteServiceInterface::class, SocialiteService::class);
     }
 
-
     public function boot(): void
     {
         Gate::policy(Product::class, ProductPolicy::class);
     }
-
 }

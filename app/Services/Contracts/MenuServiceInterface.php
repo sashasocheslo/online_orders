@@ -1,25 +1,23 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Contracts;
 
 use App\Models\Menu;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Collection;
 
 interface MenuServiceInterface
 {
     /**
-     * Отримання всіх меню
+     * Отримання всіх меню.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function getAllMenus();
 
     /**
-     * Отримання продуктів та категорій для конкретного меню
+     * Отримання продуктів та категорій для конкретного меню.
      *
-     * @param Menu $menu
-     * @param Request $request
      * @return array ['categories' => ..., 'products' => ..., 'cart' => ...]
      */
     public function getMenuDetails(Menu $menu, Request $request): array;
