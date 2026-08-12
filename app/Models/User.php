@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -24,7 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'email_verified_at',
-        'google_id'
+        'google_id',
     ];
 
     /**
@@ -50,17 +51,12 @@ class User extends Authenticatable
         ];
     }
 
-    public function client() : HasOne
-    {
-        return $this->hasOne(Client::class);
-    }
-
-    public function cart() : HasOne
+    public function cart(): HasOne
     {
         return $this->hasOne(Cart::class);
     }
 
-    public function comments() : HasMany
+    public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
