@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\Product;
 use App\Services\Contracts\ProductServiceInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ProductController extends Controller
 {
@@ -36,6 +37,8 @@ class ProductController extends Controller
 
     public function create(Menu $menu, Request $request)
     {
+        Gate::authorize('create', Product::class);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'Not supported for API. Use POST /menus/{menu}/products',
@@ -49,6 +52,8 @@ class ProductController extends Controller
 
     public function store(Menu $menu, Request $request)
     {
+        Gate::authorize('create', Product::class);
+
         $this->productService->storeProduct($menu, $request);
 
         if ($request->wantsJson()) {
@@ -60,6 +65,8 @@ class ProductController extends Controller
 
     public function edit(Menu $menu, Product $product, Request $request)
     {
+        Gate::authorize('update', $product);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'Not supported for API. Use PUT/PATCH /menus/{menu}/products/{product}',
@@ -73,6 +80,8 @@ class ProductController extends Controller
 
     public function update(Menu $menu, Product $product, Request $request)
     {
+        Gate::authorize('update', $product);
+
         $this->productService->updateProduct($menu, $product, $request);
 
         if ($request->wantsJson()) {
@@ -95,23 +104,21 @@ class ProductController extends Controller
 
     public function destroyComment(Comment $comment, Request $request)
     {
-        if ($this->productService->deleteComment($comment)) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Comment deleted'], 200);
-            }
+        Gate::authorize('delete', $comment);
 
-            return back()->with('success', 'Коментар видалено');
-        }
+        $this->productService->deleteComment($comment);
 
         if ($request->wantsJson()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => 'Comment deleted'], 200);
         }
 
-        return back()->with('error', 'Ви не можете видалити цей коментар');
+        return back()->with('success', 'Коментар видалено');
     }
 
     public function destroy(Menu $menu, Product $product, Request $request)
     {
+        Gate::authorize('delete', $product);
+
         $this->productService->deleteProduct($menu, $product);
 
         if ($request->wantsJson()) {

@@ -14,36 +14,44 @@ Route::get('', fn () => to_route('menu.index'));
 Route::resource('menu', MenuController::class)
     ->only('index', 'show');
 
-Route::delete('auth', [AuthController::class, 'destroy'])
-    ->name('auth.destroy');
-
-Route::resource('menu.products', ProductController::class)
-    ->only(['create', 'store', 'edit', 'update', 'destroy']);
-
-Route::post('/menu/{menu}/products/{product}/comments', [ProductController::class, 'storeComment'])
-    ->name('products.comments.store');
-
-Route::delete('/comments/{comment}', [ProductController::class, 'destroyComment'])
-    ->name('comments.destroy');
-
 Route::get('/catalog/search', CatalogSearchController::class)
     ->name('catalog.search');
 
-Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.store');
 
-Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+});
 
-Route::resource('cart_product', CartProductController::class)
-    ->only('index', 'destroy', 'store');
+Route::middleware('auth')->group(function () {
+    Route::delete('auth', [AuthController::class, 'destroy'])
+        ->name('auth.destroy');
 
-Route::get('/order/create', [StripeController::class, 'create'])->name('order.create');
+    Route::resource('menu.products', ProductController::class)
+        ->only(['create', 'store', 'edit', 'update', 'destroy'])
+        ->scoped();
 
-Route::post('/stripe/payment', [StripeController::class, 'payment'])->name('stripe.payment');
+    Route::post('/menu/{menu}/products/{product}/comments', [ProductController::class, 'storeComment'])
+        ->scopeBindings()
+        ->name('products.comments.store');
 
-// Після успішної оплати
-Route::get('/stripe/payment/success', [StripeController::class, 'success'])->name('stripe.payment.success');
+    Route::delete('/comments/{comment}', [ProductController::class, 'destroyComment'])
+        ->name('comments.destroy');
+
+    Route::resource('cart_product', CartProductController::class)
+        ->only('index', 'destroy', 'store');
+
+    Route::get('/order/create', [StripeController::class, 'create'])
+        ->name('order.create');
+
+    Route::post('/stripe/payment', [StripeController::class, 'payment'])
+        ->name('stripe.payment');
+
+    Route::get('/stripe/payment/success', [StripeController::class, 'success'])
+        ->name('stripe.payment.success');
+});
 
 Route::controller(SocialiteController::class)->group(function () {
     Route::get('auth/google', 'googleLogin')

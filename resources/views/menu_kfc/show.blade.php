@@ -70,7 +70,8 @@
                     </div>
                 </x-card>
 
-               <x-card class="mt-2 text-end">
+                @can('create', \App\Models\Product::class)
+                    <x-card class="mt-2 text-end">
                     <a href="{{ route('menu.products.create', $menu) }}"
                     class="btn {{
                         $menu->name === "McDonald's" ? 'btn-warning' :
@@ -83,7 +84,8 @@
                             ($menu->name === "KFC" ? '🍗 Додати страву у KFC' : '➕ Додати продукт'))
                         }}
                     </a>
-                </x-card>
+                    </x-card>
+                @endcan
 
                 <x-card class="mt-3">
                     <div class="row g-2 justify-content-start">
