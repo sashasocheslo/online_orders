@@ -18,11 +18,11 @@ interface ProductServiceInterface
 
     public function createProduct(Menu $menu): array;
 
-    public function storeProduct(Menu $menu, Request $request);
+    public function storeProduct(Menu $menu, array $data): Product;
 
     public function editProduct(Menu $menu, Product $product): array;
 
-    public function updateProduct(Menu $menu, Product $product, Request $request);
+    public function updateProduct(Menu $menu, Product $product, array $data): Product;
 
     public function deleteProduct(Menu $menu, Product $product): bool;
 

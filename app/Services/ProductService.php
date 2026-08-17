@@ -11,7 +11,10 @@ use App\Models\Product;
 use App\Services\Contracts\ProductServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ProductService implements ProductServiceInterface
 {
@@ -110,23 +113,19 @@ class ProductService implements ProductServiceInterface
         ];
     }
 
-    public function storeProduct(Menu $menu, Request $request)
+    public function storeProduct(Menu $menu, array $data): Product
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:1',
-            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'category_id' => 'nullable|exists:categories,id',
-        ]);
+        /** @var UploadedFile $image */
+        $image = $data['image'];
+        $data['image'] = $image->store('products', 'public');
 
-        $path = $request->file('image')->store('products', 'public');
+        try {
+            return $menu->products()->create($data);
+        } catch (Throwable $exception) {
+            Storage::disk('public')->delete($data['image']);
 
-        return $menu->products()->create([
-            'name' => $validated['name'],
-            'price' => $validated['price'],
-            'image' => $path,
-            'category_id' => $validated['category_id'] ?? null,
-        ]);
+            throw $exception;
+        }
     }
 
     public function editProduct(Menu $menu, Product $product): array
@@ -140,23 +139,35 @@ class ProductService implements ProductServiceInterface
         ];
     }
 
-    public function updateProduct(Menu $menu, Product $product, Request $request)
+    public function updateProduct(Menu $menu, Product $product, array $data): Product
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:1',
-            'description' => 'nullable|string|max:1000',
-            'category_id' => 'nullable|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        abort_unless($product->menu_id === $menu->id, 404);
 
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('products', 'public');
+        $oldImage = $product->image;
+        $newImage = null;
+
+        if (($data['image'] ?? null) instanceof UploadedFile) {
+            $newImage = $data['image']->store('products', 'public');
+            $data['image'] = $newImage;
+        } else {
+            unset($data['image']);
         }
 
-        $product->update($validated);
+        try {
+            $product->update($data);
+        } catch (Throwable $exception) {
+            if ($newImage !== null) {
+                Storage::disk('public')->delete($newImage);
+            }
 
-        return $product;
+            throw $exception;
+        }
+
+        if ($newImage !== null && $oldImage !== null) {
+            Storage::disk('public')->delete($oldImage);
+        }
+
+        return $product->refresh();
     }
 
     public function addComment(Product $product, Request $request): Comment
@@ -183,11 +194,15 @@ class ProductService implements ProductServiceInterface
 
     public function deleteProduct(Menu $menu, Product $product): bool
     {
-        // Проверка на принадлежность к меню (безопасность)
-        if ($product->menu_id !== $menu->id) {
-            abort(403, 'Видалення заборонено');
+        abort_unless($product->menu_id === $menu->id, 404);
+
+        $image = $product->image;
+        $deleted = $product->delete();
+
+        if ($deleted && $image !== null) {
+            Storage::disk('public')->delete($image);
         }
 
-        return $product->delete();
+        return $deleted;
     }
 }
