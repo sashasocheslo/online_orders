@@ -33,6 +33,9 @@
             </a>
 
             @auth
+                <a href="{{ route('orders.index') }}" class="text-white fs-5">
+                    Замовлення
+                </a>
                 <span class="text-white fs-5">{{ auth()->user()->name }}</span>
                 <form action="{{ route('auth.destroy') }}" method="POST" class="m-0">
                     @csrf
@@ -65,6 +68,9 @@
 
             @auth
                 <div class="d-flex justify-content-center align-items-center gap-2">
+                    <a href="{{ route('orders.index') }}" class="text-white">
+                        Замовлення
+                    </a>
                     <span class="text-white fs-5">{{ auth()->user()->name }}</span>
                     <form action="{{ route('auth.destroy') }}" method="POST" class="m-0">
                         @csrf

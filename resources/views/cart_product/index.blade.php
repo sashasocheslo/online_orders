@@ -67,9 +67,9 @@
                         Повернутися до меню
                     </a>
 
-                    <a href="{{ route('order.create', ['amount' => $cart->subtotal()]) }}">
+                    <a href="{{ route('menu.orders.create', $menu) }}">
                         <x-button class="btn-buy">
-                            Купити на {{ number_format($cart->subtotal(), 2, ',', ' ') }} ₴
+                            Оформити на {{ number_format($cart->subtotal(), 2, ',', ' ') }} ₴
                         </x-button>
                     </a>
                 </div>
