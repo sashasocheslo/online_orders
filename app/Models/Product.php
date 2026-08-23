@@ -66,7 +66,10 @@ class Product extends Model
     public function hasUserAdd(User $user): bool
     {
         return $this->cartProducts()
-            ->where('cart_id', $user->cart?->id ?? 0)
+            ->whereHas(
+                'cart',
+                fn (Builder $query) => $query->where('user_id', $user->id),
+            )
             ->exists();
     }
 }

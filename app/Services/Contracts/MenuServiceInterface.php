@@ -18,7 +18,7 @@ interface MenuServiceInterface
     /**
      * Отримання продуктів та категорій для конкретного меню.
      *
-     * @return array ['categories' => ..., 'products' => ..., 'cart' => ...]
+     * @return array ['categories' => ..., 'products' => ...]
      */
     public function getMenuDetails(Menu $menu, Request $request): array;
 }

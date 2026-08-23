@@ -35,7 +35,6 @@ class MenuController extends Controller
                 'menu' => $menu,
                 'categories' => $data['categories'],
                 'products' => $data['products'],
-                'cart' => $data['cart'],
             ], 200);
         }
 
@@ -50,7 +49,6 @@ class MenuController extends Controller
             'menu' => $menu,
             'categories' => $data['categories'],
             'products' => $data['products'],
-            'cart' => $data['cart'],
         ]);
     }
 }

@@ -11,4 +11,9 @@ class CartProductPolicy
     {
         return $user->is($cartProduct->cart?->user);
     }
+
+    public function delete(User $user, CartProduct $cartProduct): bool
+    {
+        return $user->is($cartProduct->cart?->user);
+    }
 }

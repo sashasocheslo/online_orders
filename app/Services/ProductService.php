@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Cart;
 use App\Models\Category;
-use App\Models\Client;
 use App\Models\Comment;
 use App\Models\Menu;
 use App\Models\Product;
@@ -36,11 +34,8 @@ class ProductService implements ProductServiceInterface
             ->with(['comments.user'])
             ->get();
 
-        $cart = $this->getOrCreateCart();
-
         return [
             'products' => $products,
-            'cart' => $cart,
         ];
     }
 
@@ -87,20 +82,6 @@ class ProductService implements ProductServiceInterface
                 ->orderBy('name')
                 ->get(),
         ];
-    }
-
-    public function getOrCreateCart()
-    {
-        $user = Auth::user();
-
-        if ($user) {
-            return $user->cart ?? Cart::create(['user_id' => $user->id]);
-        } else {
-            $client = Client::find(session('client_id')) ?? Client::create();
-            session(['client_id' => $client->id]);
-
-            return null;
-        }
     }
 
     public function createProduct(Menu $menu): array

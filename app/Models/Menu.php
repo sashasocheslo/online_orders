@@ -12,8 +12,13 @@ class Menu extends Model
 
     protected $fillable = ['name', 'image'];
 
-    public function products() : HasMany
+    public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function carts(): HasMany
+    {
+        return $this->hasMany(Cart::class);
     }
 }

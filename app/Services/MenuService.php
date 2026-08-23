@@ -31,7 +31,6 @@ class MenuService implements MenuServiceInterface
         return [
             'categories' => $categories,
             'products' => $data['products'],
-            'cart' => $data['cart'],
         ];
     }
 }

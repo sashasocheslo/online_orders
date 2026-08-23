@@ -38,6 +38,7 @@ test('deleting a product also removes its cart items and comments', function () 
 
     $cart = Cart::query()->create([
         'user_id' => $user->id,
+        'menu_id' => $menu->id,
     ]);
 
     $cartProduct = CartProduct::query()->create([

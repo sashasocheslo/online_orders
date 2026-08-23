@@ -40,8 +40,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comments/{comment}', [ProductController::class, 'destroyComment'])
         ->name('comments.destroy');
 
+    Route::get('/menu/{menu}/cart', [CartProductController::class, 'showForMenu'])
+        ->name('menu.cart.index');
+
     Route::resource('cart_product', CartProductController::class)
-        ->only('index', 'destroy', 'store');
+        ->only(['store', 'update', 'destroy']);
 
     Route::get('/order/create', [StripeController::class, 'create'])
         ->name('order.create');

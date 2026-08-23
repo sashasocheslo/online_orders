@@ -1,4 +1,4 @@
-<x-layout>
+<x-layout :menu="$menu">
     <div class="container">
         <h2 class="text-white mb-4">Додати товар у {{ $menu->name }}</h2>
 
