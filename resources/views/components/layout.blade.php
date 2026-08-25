@@ -19,10 +19,24 @@
 </head>
 <body class="bg-fastfood text-white">
     <div class="container-fluid py-3 position-relative">
-        <h1 class="d-block d-lg-none text-center fw-bold mb-0">FastFood</h1>
+        <h1 class="d-block d-lg-none text-center fw-bold mb-0">
+            <a
+                href="{{ route('menu.index') }}"
+                class="text-white text-decoration-none"
+                aria-label="На головне меню"
+            >
+                FastFood
+            </a>
+        </h1>
 
         <h1 class="d-none d-lg-block position-absolute start-50 translate-middle text-center fw-bold m-3">
-            FastFood
+            <a
+                href="{{ route('menu.index') }}"
+                class="text-white text-decoration-none"
+                aria-label="На головне меню"
+            >
+                FastFood
+            </a>
         </h1>
 
         <nav class="d-none d-lg-flex position-absolute top-0 end-0 p-3 align-items-center gap-3">
@@ -42,14 +56,16 @@
                     @method('DELETE')
                     <button class="btn btn-outline-light btn-sm">Вийти</button>
                 </form>
-                <a
-                    href="{{ $menu ? route('menu.cart.index', $menu) : route('menu.index') }}"
-                    class="text-white fs-4"
-                    aria-label="{{ $menu ? 'Кошик '.$menu->name : 'Оберіть ресторан' }}"
-                    title="{{ $menu ? 'Кошик '.$menu->name : 'Спочатку оберіть ресторан' }}"
-                >
-                    <i class="bi bi-cart-fill"></i>
-                </a>
+                @if ($menu)
+                    <a
+                        href="{{ route('menu.cart.index', $menu) }}"
+                        class="text-white fs-4"
+                        aria-label="Кошик {{ $menu->name }}"
+                        title="Кошик {{ $menu->name }}"
+                    >
+                        <i class="bi bi-cart-fill"></i>
+                    </a>
+                @endif
             @else
                 <a href="{{ route('login') }}"
                    class="text-white fs-5 d-flex align-items-center gap-2">
@@ -77,13 +93,15 @@
                         @method('DELETE')
                         <button class="btn btn-outline-light btn-sm">Вийти</button>
                     </form>
-                    <a
-                        href="{{ $menu ? route('menu.cart.index', $menu) : route('menu.index') }}"
-                        class="text-white fs-4"
-                        aria-label="{{ $menu ? 'Кошик '.$menu->name : 'Оберіть ресторан' }}"
-                    >
-                        <i class="bi bi-cart-fill"></i>
-                    </a>
+                    @if ($menu)
+                        <a
+                            href="{{ route('menu.cart.index', $menu) }}"
+                            class="text-white fs-4"
+                            aria-label="Кошик {{ $menu->name }}"
+                        >
+                            <i class="bi bi-cart-fill"></i>
+                        </a>
+                    @endif
                 </div>
             @else
                 <a href="{{ route('login') }}"

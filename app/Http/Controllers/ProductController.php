@@ -27,7 +27,6 @@ class ProductController extends Controller
         if ($request->wantsJson()) {
             return response()->json([
                 'products' => $data['products'],
-                'cart' => $data['cart'],
             ], 200);
         }
 
