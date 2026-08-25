@@ -20,7 +20,11 @@
                                 </div>
 
                                 <div class="text-end">
-                                    <span class="badge text-bg-warning">
+                                    <span @class([
+                                        'badge',
+                                        'text-bg-success' => $order->status === \App\Enums\OrderStatus::Paid,
+                                        'text-bg-warning' => $order->status !== \App\Enums\OrderStatus::Paid,
+                                    ])>
                                         {{ $order->status->label() }}
                                     </span>
                                     <div class="fw-bold mt-2">

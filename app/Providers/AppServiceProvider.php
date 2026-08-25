@@ -19,10 +19,12 @@ use App\Services\Contracts\CartProductServiceInterface;
 use App\Services\Contracts\MenuServiceInterface;
 use App\Services\Contracts\OrderServiceInterface;
 use App\Services\Contracts\PaymentGatewayInterface;
+use App\Services\Contracts\PaymentServiceInterface;
 use App\Services\Contracts\ProductServiceInterface;
 use App\Services\Contracts\SocialiteServiceInterface;
 use App\Services\MenuService;
 use App\Services\OrderService;
+use App\Services\PaymentService;
 use App\Services\ProductService;
 use App\Services\SocialiteService;
 use App\Services\StripeService;
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(PaymentGatewayInterface::class, StripeService::class);
+        $this->app->bind(PaymentServiceInterface::class, PaymentService::class);
         $this->app->bind(OrderServiceInterface::class, OrderService::class);
         $this->app->bind(AuthServiceInterface::class, AuthService::class);
         $this->app->bind(CartProductServiceInterface::class, CartProductService::class);

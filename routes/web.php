@@ -5,9 +5,10 @@ use App\Http\Controllers\CartProductController;
 use App\Http\Controllers\CatalogSearchController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SocialiteController;
-use App\Http\Controllers\StripeController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('', fn () => to_route('menu.index'));
@@ -17,6 +18,9 @@ Route::resource('menu', MenuController::class)
 
 Route::get('/catalog/search', CatalogSearchController::class)
     ->name('catalog.search');
+
+Route::post('/stripe/webhook', StripeWebhookController::class)
+    ->name('stripe.webhook');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
@@ -59,11 +63,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show'])
         ->name('orders.show');
 
-    Route::post('/stripe/payment', [StripeController::class, 'payment'])
-        ->name('stripe.payment');
+    Route::post('/orders/{order}/payment', [PaymentController::class, 'store'])
+        ->name('orders.payment.store');
 
-    Route::get('/stripe/payment/success', [StripeController::class, 'success'])
-        ->name('stripe.payment.success');
+    Route::get('/orders/{order}/payment/return', [PaymentController::class, 'returnFromStripe'])
+        ->name('orders.payment.return');
 });
 
 Route::controller(SocialiteController::class)->group(function () {

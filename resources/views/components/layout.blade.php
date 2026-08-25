@@ -110,6 +110,13 @@
                 <p class="text-success m-0">{{ session('success') }}</p>
             </div>
         @endif
+
+        @if (session('info'))
+            <div role="alert" class="border-start border-4 border-info bg-info bg-opacity-10 p-4 mb-4 rounded">
+                <p class="fw-bold text-info mb-1">Інформація</p>
+                <p class="text-dark m-0">{{ session('info') }}</p>
+            </div>
+        @endif
         {{ $slot }}
     </div>
 

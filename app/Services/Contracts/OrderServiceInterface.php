@@ -17,6 +17,4 @@ interface OrderServiceInterface
     public function listForUser(User $user): Collection;
 
     public function loadDetails(Order $order): Order;
-
-    public function sendOrderConfirmation(array $data): void;
 }
