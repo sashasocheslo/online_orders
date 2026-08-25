@@ -65,4 +65,15 @@ class OrderController extends Controller
             'order' => $this->orderService->loadDetails($order),
         ]);
     }
+
+    public function destroy(Order $order): RedirectResponse
+    {
+        Gate::authorize('delete', $order);
+
+        $this->orderService->deleteOrder($order);
+
+        return redirect()
+            ->route('orders.index')
+            ->with('success', 'Замовлення видалено.');
+    }
 }

@@ -40,12 +40,6 @@
         </h1>
 
         <nav class="d-none d-lg-flex position-absolute top-0 end-0 p-3 align-items-center gap-3">
-            <a href="{{ route('catalog.search') }}"
-                class="text-white fs-5 d-flex align-items-center gap-2">
-                Пошук
-                <i class="bi bi-search"></i>
-            </a>
-
             @auth
                 <a href="{{ route('orders.index') }}" class="text-white fs-5">
                     Замовлення
@@ -76,12 +70,6 @@
         </nav>
 
         <div class="d-block d-lg-none mt-3 text-center">
-            <a href="{{ route('catalog.search') }}"
-                class="text-white fs-5 d-inline-flex align-items-center gap-2 mb-2">
-                Пошук
-                <i class="bi bi-search"></i>
-            </a>
-
             @auth
                 <div class="d-flex justify-content-center align-items-center gap-2">
                     <a href="{{ route('orders.index') }}" class="text-white">

@@ -46,4 +46,28 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'currency' => env('STRIPE_CURRENCY', 'uah'),
     ],
+
+    'ai' => [
+        'default' => env('AI_DEFAULT_PROVIDER', 'gemini'),
+
+        'openai' => [
+            'key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL'),
+            'base_url' => 'https://api.openai.com/v1',
+        ],
+
+        'gemini' => [
+            'key' => env('GEMINI_API_KEY'),
+            'model' => env('GEMINI_MODEL'),
+            'base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        ],
+
+        'anthropic' => [
+            'key' => env('ANTHROPIC_API_KEY'),
+            'model' => env('ANTHROPIC_MODEL'),
+            'base_url' => 'https://api.anthropic.com/v1',
+            'version' => '2023-06-01',
+        ],
+    ],
+
 ];

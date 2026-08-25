@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartProductController;
-use App\Http\Controllers\CatalogSearchController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
@@ -15,9 +15,6 @@ Route::get('', fn () => to_route('menu.index'));
 
 Route::resource('menu', MenuController::class)
     ->only('index', 'show');
-
-Route::get('/catalog/search', CatalogSearchController::class)
-    ->name('catalog.search');
 
 Route::post('/stripe/webhook', StripeWebhookController::class)
     ->name('stripe.webhook');
@@ -33,6 +30,10 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::delete('auth', [AuthController::class, 'destroy'])
         ->name('auth.destroy');
+
+    Route::post('/menu/{menu}/ai/recommendations', AiAssistantController::class)
+        ->middleware('throttle:ai-recommendations')
+        ->name('menu.ai.recommendations');
 
     Route::resource('menu.products', ProductController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy'])
@@ -62,6 +63,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/orders/{order}', [OrderController::class, 'show'])
         ->name('orders.show');
+
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])
+        ->name('orders.destroy');
 
     Route::post('/orders/{order}/payment', [PaymentController::class, 'store'])
         ->name('orders.payment.store');

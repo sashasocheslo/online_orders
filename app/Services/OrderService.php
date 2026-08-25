@@ -122,4 +122,9 @@ class OrderService implements OrderServiceInterface
             'statusHistory.changedBy',
         ]);
     }
+
+    public function deleteOrder(Order $order): void
+    {
+        $order->delete();
+    }
 }

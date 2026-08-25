@@ -75,9 +75,26 @@
             </div>
 
             <div class="d-flex justify-content-between flex-wrap gap-2 mt-4">
-                <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">
-                    До історії замовлень
-                </a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">
+                        До історії замовлень
+                    </a>
+
+                    @can('delete', $order)
+                        <form
+                            action="{{ route('orders.destroy', $order) }}"
+                            method="POST"
+                            onsubmit="return confirm('Видалити замовлення №{{ $order->id }}? Цю дію неможливо скасувати.')"
+                        >
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                Видалити замовлення
+                            </button>
+                        </form>
+                    @endcan
+                </div>
 
                 <div class="text-end">
                     @if ($order->payment !== null)

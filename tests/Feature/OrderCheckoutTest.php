@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Menu;
@@ -8,6 +9,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 
 pest()->use(RefreshDatabase::class);
 
@@ -217,4 +219,59 @@ test('order history contains only current users orders', function () {
         ->assertOk()
         ->assertSeeText('Visible Restaurant')
         ->assertDontSeeText('Hidden Restaurant');
+});
+
+test('order owner can delete an order with all related records', function () {
+    $owner = User::factory()->create();
+    $menu = Menu::query()->create(['name' => 'Deletable Restaurant', 'image' => 'delete.png']);
+    $order = createOrderRecord($owner, $menu);
+
+    $item = $order->items()->create([
+        'product_name' => 'Deleted snapshot',
+        'unit_price' => '10.00',
+        'quantity' => 1,
+    ]);
+
+    $history = $order->statusHistory()->create([
+        'status' => OrderStatus::PendingPayment,
+        'changed_by' => $owner->id,
+    ]);
+
+    $payment = $order->payment()->create([
+        'provider' => 'stripe',
+        'status' => PaymentStatus::Pending,
+        'amount_minor' => 1000,
+        'currency' => 'uah',
+        'idempotency_key' => (string) Str::uuid(),
+    ]);
+
+    $this->actingAs($owner)
+        ->delete(route('orders.destroy', $order))
+        ->assertRedirect(route('orders.index'))
+        ->assertSessionHas('success', 'Замовлення видалено.');
+
+    $this->assertDatabaseMissing('orders', ['id' => $order->id]);
+    $this->assertDatabaseMissing('order_items', ['id' => $item->id]);
+    $this->assertDatabaseMissing('order_status_histories', ['id' => $history->id]);
+    $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+});
+
+test('user cannot delete another users order while administrator can', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+    $admin = User::factory()->admin()->create();
+    $menu = Menu::query()->create(['name' => 'Managed Restaurant', 'image' => 'managed.png']);
+    $order = createOrderRecord($owner, $menu);
+
+    $this->actingAs($stranger)
+        ->delete(route('orders.destroy', $order))
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('orders', ['id' => $order->id]);
+
+    $this->actingAs($admin)
+        ->delete(route('orders.destroy', $order))
+        ->assertRedirect(route('orders.index'));
+
+    $this->assertDatabaseMissing('orders', ['id' => $order->id]);
 });

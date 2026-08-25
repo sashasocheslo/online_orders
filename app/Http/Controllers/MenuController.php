@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AiProvider;
 use App\Models\Menu;
+use App\Services\Contracts\AiAssistantServiceInterface;
 use App\Services\Contracts\MenuServiceInterface;
 use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    private MenuServiceInterface $menuService;
-
-    public function __construct(MenuServiceInterface $menuService)
-    {
-        $this->menuService = $menuService;
-    }
+    public function __construct(
+        private readonly MenuServiceInterface $menuService,
+        private readonly AiAssistantServiceInterface $aiAssistant,
+    ) {}
 
     public function index(Request $request)
     {
@@ -45,10 +45,17 @@ class MenuController extends Controller
             default => 'menu.show',
         };
 
+        $availableAiProviders = array_map(
+            fn (AiProvider $provider): string => $provider->value,
+            $this->aiAssistant->availableProviders(),
+        );
+
         return view($view, [
             'menu' => $menu,
             'categories' => $data['categories'],
             'products' => $data['products'],
+            'aiProviders' => AiProvider::cases(),
+            'availableAiProviders' => $availableAiProviders,
         ]);
     }
 }

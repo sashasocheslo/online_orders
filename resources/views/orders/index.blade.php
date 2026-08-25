@@ -5,38 +5,55 @@
         <div class="row g-3 justify-content-center">
             @forelse ($orders as $order)
                 <div class="col-lg-8">
-                    <a
-                        href="{{ route('orders.show', $order) }}"
-                        class="text-decoration-none"
-                    >
-                        <article class="bg-light text-dark rounded shadow p-4">
-                            <div class="d-flex justify-content-between flex-wrap gap-3">
-                                <div>
-                                    <h2 class="h4 mb-1">Замовлення №{{ $order->id }}</h2>
-                                    <div>{{ $order->menu->name }}</div>
-                                    @if (auth()->user()->isAdmin())
-                                        <div class="text-muted small">Користувач: {{ $order->user->email }}</div>
-                                    @endif
-                                </div>
+                    <article class="bg-light text-dark rounded shadow p-4">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <a
+                                href="{{ route('orders.show', $order) }}"
+                                class="text-dark text-decoration-none flex-grow-1"
+                            >
+                                <div class="d-flex justify-content-between flex-wrap gap-3">
+                                    <div>
+                                        <h2 class="h4 mb-1">Замовлення №{{ $order->id }}</h2>
+                                        <div>{{ $order->menu->name }}</div>
+                                        @if (auth()->user()->isAdmin())
+                                            <div class="text-muted small">Користувач: {{ $order->user->email }}</div>
+                                        @endif
+                                    </div>
 
-                                <div class="text-end">
-                                    <span @class([
-                                        'badge',
-                                        'text-bg-success' => $order->status === \App\Enums\OrderStatus::Paid,
-                                        'text-bg-warning' => $order->status !== \App\Enums\OrderStatus::Paid,
-                                    ])>
-                                        {{ $order->status->label() }}
-                                    </span>
-                                    <div class="fw-bold mt-2">
-                                        {{ number_format($order->total, 2, ',', ' ') }} ₴
-                                    </div>
-                                    <div class="text-muted small">
-                                        {{ $order->items_count }} позицій · {{ $order->created_at->format('d.m.Y H:i') }}
+                                    <div class="text-end">
+                                        <span @class([
+                                            'badge',
+                                            'text-bg-success' => $order->status === \App\Enums\OrderStatus::Paid,
+                                            'text-bg-warning' => $order->status !== \App\Enums\OrderStatus::Paid,
+                                        ])>
+                                            {{ $order->status->label() }}
+                                        </span>
+                                        <div class="fw-bold mt-2">
+                                            {{ number_format($order->total, 2, ',', ' ') }} ₴
+                                        </div>
+                                        <div class="text-muted small">
+                                            {{ $order->items_count }} позицій · {{ $order->created_at->format('d.m.Y H:i') }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </article>
-                    </a>
+                            </a>
+
+                            @can('delete', $order)
+                                <form
+                                    action="{{ route('orders.destroy', $order) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Видалити замовлення №{{ $order->id }}? Цю дію неможливо скасувати.')"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                        Видалити
+                                    </button>
+                                </form>
+                            @endcan
+                        </div>
+                    </article>
                 </div>
             @empty
                 <div class="col-lg-8">
