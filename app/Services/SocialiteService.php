@@ -3,11 +3,11 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Contracts\SocialiteServiceInterface;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
-use Exception;
-
 
 class SocialiteService implements SocialiteServiceInterface
 {
@@ -20,6 +20,7 @@ class SocialiteService implements SocialiteServiceInterface
 
             if ($user) {
                 Auth::login($user);
+
                 return $user;
             }
 
@@ -31,6 +32,7 @@ class SocialiteService implements SocialiteServiceInterface
             ]);
 
             Auth::login($user);
+
             return $user;
         } catch (Exception $e) {
             return null;

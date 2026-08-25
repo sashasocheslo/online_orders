@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AuthServiceInterface;
+use App\Services\Contracts\AuthServiceInterface;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -19,9 +19,10 @@ class AuthController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'HTML login form is not available for API. Use POST /auth/login.'
+                'message' => 'HTML login form is not available for API. Use POST /auth/login.',
             ], 406);
         }
+
         return view('auth.login');
     }
 
@@ -29,7 +30,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string|min:8'
+            'password' => 'required|string|min:8',
         ]);
 
         $credentials = $request->only('email', 'password');
@@ -39,9 +40,10 @@ class AuthController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'message' => 'Login successful',
-                    'user' => \Illuminate\Support\Facades\Auth::user(),
+                    'user' => Auth::user(),
                 ], 200);
             }
+
             return redirect()->intended('/');
         }
 
@@ -56,9 +58,10 @@ class AuthController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'HTML register form is not available for API. Use POST /auth/register.'
+                'message' => 'HTML register form is not available for API. Use POST /auth/register.',
             ], 406);
         }
+
         return view('auth.register');
     }
 
@@ -76,7 +79,7 @@ class AuthController extends Controller
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'User registered successfully',
-                'user' => \Illuminate\Support\Facades\Auth::user(),
+                'user' => Auth::user(),
             ], 201);
         }
 

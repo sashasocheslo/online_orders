@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Menu;
 use App\Models\Category;
-use App\Http\Controllers\ProductController;
+use App\Models\Menu;
+use App\Services\Contracts\MenuServiceInterface;
+use App\Services\Contracts\ProductServiceInterface;
 use Illuminate\Http\Request;
-
 
 class MenuService implements MenuServiceInterface
 {

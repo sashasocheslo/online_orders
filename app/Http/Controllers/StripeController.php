@@ -2,17 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Services\PaymentGatewayInterface;
-use App\Services\OrderServiceInterface;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\OrderConfirmation;
+use App\Services\Contracts\OrderServiceInterface;
+use App\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Request;
 
 class StripeController extends Controller
 {
     private PaymentGatewayInterface $paymentGateway;
+
     private OrderServiceInterface $orderService;
 
     public function __construct(PaymentGatewayInterface $paymentGateway, OrderServiceInterface $orderService)
@@ -25,7 +22,7 @@ class StripeController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Not supported for API. Use POST /payments'
+                'message' => 'Not supported for API. Use POST /payments',
             ], 405);
         }
 
@@ -39,9 +36,10 @@ class StripeController extends Controller
     {
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Not supported for API. Use POST /payments'
+                'message' => 'Not supported for API. Use POST /payments',
             ], 405);
         }
+
         return view('cart_product.order_form');
     }
 

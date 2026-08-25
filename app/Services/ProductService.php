@@ -2,15 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Menu;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\Comment;
+use App\Models\Menu;
 use App\Models\Product;
+use App\Services\Contracts\ProductServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ProductService implements ProductServiceInterface
 {
@@ -18,8 +19,7 @@ class ProductService implements ProductServiceInterface
     {
         $search = $request->input('search');
 
-
-         // Збираємо фільтри в один масив
+        // Збираємо фільтри в один масив
         $filters = [
             'categories' => $request->input('categories'),
             'min_price' => $request->input('min_price'),
@@ -27,7 +27,7 @@ class ProductService implements ProductServiceInterface
         ];
 
         $products = $menu->products()
-            ->when($search, fn($query) => $query->search($search))
+            ->when($search, fn ($query) => $query->search($search))
             ->categories($filters)
             ->orderBy('price', 'asc')
             ->with(['comments.user'])
@@ -41,6 +41,51 @@ class ProductService implements ProductServiceInterface
         ];
     }
 
+    public function searchCatalog(array $filters): array
+    {
+        $productsQuery = Product::query()
+            ->with(['menu', 'category'])
+            ->when(
+                $filters['query'] ?? null,
+                fn ($query, $search) => $query->search($search),
+            )
+            ->when(
+                $filters['menu_id'] ?? null,
+                fn ($query, $menuId) => $query->where('menu_id', $menuId),
+            )
+            ->when(
+                $filters['category_id'] ?? null,
+                fn ($query, $categoryId) => $query->where('category_id', $categoryId),
+            )
+            ->when(
+                array_key_exists('min_price', $filters) && $filters['min_price'] !== null,
+                fn ($query) => $query->where('price', '>=', $filters['min_price']),
+            )
+            ->when(
+                array_key_exists('max_price', $filters) && $filters['max_price'] !== null,
+                fn ($query) => $query->where('price', '<=', $filters['max_price']),
+            );
+
+        $productsQuery = match ($filters['sort'] ?? 'price_asc') {
+            'price_desc' => $productsQuery->orderByDesc('price'),
+            'name' => $productsQuery->orderBy('name'),
+            default => $productsQuery->orderBy('price'),
+        };
+
+        return [
+            'products' => $productsQuery
+                ->paginate(12)
+                ->withQueryString(),
+            'menus' => Menu::query()
+                ->orderBy('name')
+                ->get(),
+            'categories' => Category::query()
+                ->whereHas('products')
+                ->orderBy('name')
+                ->get(),
+        ];
+    }
+
     public function getOrCreateCart()
     {
         $user = Auth::user();
@@ -50,6 +95,7 @@ class ProductService implements ProductServiceInterface
         } else {
             $client = Client::find(session('client_id')) ?? Client::create();
             session(['client_id' => $client->id]);
+
             return null;
         }
     }
@@ -64,11 +110,10 @@ class ProductService implements ProductServiceInterface
         ];
     }
 
-
     public function storeProduct(Menu $menu, Request $request)
     {
         $validated = $request->validate([
-            'name'  => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:1',
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
             'category_id' => 'nullable|exists:categories,id',
@@ -77,9 +122,9 @@ class ProductService implements ProductServiceInterface
         $path = $request->file('image')->store('products', 'public');
 
         return $menu->products()->create([
-            'name'        => $validated['name'],
-            'price'       => $validated['price'],
-            'image'       => $path,
+            'name' => $validated['name'],
+            'price' => $validated['price'],
+            'image' => $path,
             'category_id' => $validated['category_id'] ?? null,
         ]);
     }
@@ -124,7 +169,6 @@ class ProductService implements ProductServiceInterface
             'content' => $validated['content'],
             'user_id' => Auth::id(),
         ]);
-        dd($comment);
     }
 
     public function getComments(Product $product): Collection
@@ -140,6 +184,7 @@ class ProductService implements ProductServiceInterface
 
         return false;
     }
+
     public function deleteProduct(Menu $menu, Product $product): bool
     {
         // Проверка на принадлежность к меню (безопасность)

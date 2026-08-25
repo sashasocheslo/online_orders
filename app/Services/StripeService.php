@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Contracts\PaymentGatewayInterface;
 use Stripe\StripeClient;
 
 class StripeService implements PaymentGatewayInterface
@@ -10,16 +11,16 @@ class StripeService implements PaymentGatewayInterface
 
     public function __construct()
     {
-        $this->stripe = new StripeClient(env("STRIPE_SECRET"));
+        $this->stripe = new StripeClient(env('STRIPE_SECRET'));
     }
 
     public function createPayment(float $amount): string
     {
         $rate = 42.9549;
-        $amountCents = (int)(($amount / $rate) * 100);
+        $amountCents = (int) (($amount / $rate) * 100);
 
         $session = $this->stripe->checkout->sessions->create([
-            'success_url' => route('stripe.payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'success_url' => route('stripe.payment.success').'?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => url('/cart'),
             'line_items' => [[
                 'price_data' => [

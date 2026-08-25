@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Services\CartProductServiceInterface;
 use App\Models\CartProduct;
+use App\Services\Contracts\CartProductServiceInterface;
+use Illuminate\Http\Request;
 
 class CartProductController extends Controller
 {

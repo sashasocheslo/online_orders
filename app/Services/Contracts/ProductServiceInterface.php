@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Contracts;
 
 use App\Models\Comment;
 use App\Models\Menu;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Laravel\Prompts\Prompt;
-
 
 interface ProductServiceInterface
 {
-
     public function getProducts(Menu $menu, Request $request): array;
+
+    public function searchCatalog(array $filters): array;
 
     public function getOrCreateCart();
 
@@ -32,5 +31,4 @@ interface ProductServiceInterface
     public function getComments(Product $product): Collection;
 
     public function deleteComment(Comment $comment): bool;
-
 }

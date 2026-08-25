@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CartProduct;
 use App\Models\Product;
+use App\Services\Contracts\CartProductServiceInterface;
 use Illuminate\Support\Facades\Gate;
 
 class CartProductService implements CartProductServiceInterface

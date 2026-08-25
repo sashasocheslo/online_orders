@@ -1,11 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Contracts;
 
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-
 
 interface SocialiteServiceInterface
 {

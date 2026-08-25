@@ -2,14 +2,10 @@
 
 namespace App\Services;
 
+use App\Mail\OrderConfirmation;
+use App\Services\Contracts\OrderServiceInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\OrderConfirmation;
-
-interface OrderServiceInterface
-{
-    public function sendOrderConfirmation(array $data): void;
-}
 
 class OrderService implements OrderServiceInterface
 {
