@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cart;
 use App\Models\CartProduct;
+use App\Models\User;
 use App\Services\Contracts\CartProductServiceInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class CartProductController extends Controller
 {
@@ -17,7 +20,10 @@ class CartProductController extends Controller
 
     public function index(Request $request)
     {
-        $cartProducts = $this->cartService->listCartProducts();
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $cartProducts = $this->cartService->listCartProducts($user);
 
         if ($request->wantsJson()) {
             return response()->json($cartProducts, 200);
@@ -32,6 +38,9 @@ class CartProductController extends Controller
             'cart_id' => 'required|exists:carts,id',
             'product_id' => 'required|exists:products,id',
         ]);
+
+        $cart = Cart::query()->findOrFail($validated['cart_id']);
+        Gate::authorize('update', $cart);
 
         $this->cartService->addProduct($validated['cart_id'], $validated['product_id']);
 
@@ -48,6 +57,8 @@ class CartProductController extends Controller
 
     public function destroy(CartProduct $cartProduct, Request $request)
     {
+        Gate::authorize('update', $cartProduct);
+
         $this->cartService->removeProduct($cartProduct);
 
         if ($request->wantsJson()) {

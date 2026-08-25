@@ -3,6 +3,8 @@
 namespace App\Services\Contracts;
 
 use App\Models\CartProduct;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 interface CartProductServiceInterface
 {
@@ -10,5 +12,5 @@ interface CartProductServiceInterface
 
     public function removeProduct(CartProduct $cartProduct): void;
 
-    public function listCartProducts(): iterable;
+    public function listCartProducts(User $user): Collection;
 }

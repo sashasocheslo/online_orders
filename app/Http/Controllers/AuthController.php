@@ -37,6 +37,8 @@ class AuthController extends Controller
         $remember = $request->filled('remember');
 
         if ($this->authService->login($credentials, $remember)) {
+            $request->session()->regenerate();
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'message' => 'Login successful',
@@ -75,6 +77,7 @@ class AuthController extends Controller
 
         $remember = $request->filled('remember');
         $this->authService->register($request->only(['name', 'email', 'password']), $remember);
+        $request->session()->regenerate();
 
         if ($request->wantsJson()) {
             return response()->json([

@@ -178,11 +178,7 @@ class ProductService implements ProductServiceInterface
 
     public function deleteComment(Comment $comment): bool
     {
-        if (Auth::check() && Auth::id() === $comment->user_id) {
-            return $comment->delete();
-        }
-
-        return false;
+        return $comment->delete();
     }
 
     public function deleteProduct(Menu $menu, Product $product): bool

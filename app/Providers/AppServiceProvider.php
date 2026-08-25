@@ -2,7 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Cart;
+use App\Models\CartProduct;
+use App\Models\Comment;
 use App\Models\Product;
+use App\Policies\CartPolicy;
+use App\Policies\CartProductPolicy;
+use App\Policies\CommentPolicy;
 use App\Policies\ProductPolicy;
 use App\Services\AuthService;
 use App\Services\CartProductService;
@@ -39,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Cart::class, CartPolicy::class);
+        Gate::policy(CartProduct::class, CartProductPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Comment::class, CommentPolicy::class);
     }
 }

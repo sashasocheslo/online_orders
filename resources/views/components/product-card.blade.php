@@ -13,20 +13,24 @@
         <div class="mt-2">
             {{ $slot }}
 
-        <a href="{{ route('menu.products.edit', [$product->menu_id, $product->id]) }}"
-        class="btn btn-warning btn-sm mt-2">
-            Редагувати
-        </a>
+            @can('update', $product)
+                <a href="{{ route('menu.products.edit', [$product->menu_id, $product->id]) }}"
+                    class="btn btn-warning btn-sm mt-2">
+                    Редагувати
+                </a>
+            @endcan
 
-          <form action="{{ route('menu.products.destroy', [$product->menu_id, $product->id]) }}"
-                  method="POST" class="d-inline"
-                  onsubmit="return confirm('Ви впевнені, що хочете видалити цей товар?')">
-                @csrf
-                @method('DELETE')
-                <x-button>
-                    Видалити
-                </x-button>
-            </form>
+            @can('delete', $product)
+                <form action="{{ route('menu.products.destroy', [$product->menu_id, $product->id]) }}"
+                    method="POST" class="d-inline"
+                    onsubmit="return confirm('Ви впевнені, що хочете видалити цей товар?')">
+                    @csrf
+                    @method('DELETE')
+                    <x-button>
+                        Видалити
+                    </x-button>
+                </form>
+            @endcan
         </div>
 
         <div class="comments mt-3 text-start">
@@ -47,14 +51,13 @@
                     <strong>{{ $comment->user->name ?? 'Анонім' }}:</strong>
                     <p>{{ $comment->content }}</p>
 
-                    @if(auth()->id() == $comment->user_id)
-                        <form action="{{ route('comments.destroy', ['comment' => $comment->id]) }}" method="POST" class="d-inline mt-1">
+                    @can('delete', $comment)
+                        <form action="{{ route('comments.destroy', $comment) }}" method="POST" class="d-inline mt-1">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
                         </form>
-
-                    @endif
+                    @endcan
                 </div>
             @endforeach
 

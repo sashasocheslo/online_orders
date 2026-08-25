@@ -4,15 +4,15 @@ namespace App\Services;
 
 use App\Models\CartProduct;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\Contracts\CartProductServiceInterface;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\Eloquent\Collection;
 
 class CartProductService implements CartProductServiceInterface
 {
     public function addProduct(int $cartId, int $productId): void
     {
         $product = Product::findOrFail($productId);
-        Gate::authorize('add', $product);
 
         $cartProduct = CartProduct::where('cart_id', $cartId)
             ->where('product_id', $productId)
@@ -32,9 +32,6 @@ class CartProductService implements CartProductServiceInterface
 
     public function removeProduct(CartProduct $cartProduct): void
     {
-        $product = $cartProduct->product;
-        Gate::authorize('add', $product);
-
         if ($cartProduct->quantity > 1) {
             $cartProduct->decrement('quantity');
         } else {
@@ -42,8 +39,11 @@ class CartProductService implements CartProductServiceInterface
         }
     }
 
-    public function listCartProducts(): iterable
+    public function listCartProducts(User $user): Collection
     {
-        return CartProduct::all();
+        return CartProduct::query()
+            ->whereHas('cart', fn ($query) => $query->where('user_id', $user->id))
+            ->with('product')
+            ->get();
     }
 }
