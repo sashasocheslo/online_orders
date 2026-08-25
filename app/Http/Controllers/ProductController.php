@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Models\Comment;
 use App\Models\Menu;
 use App\Models\Product;
@@ -50,17 +52,17 @@ class ProductController extends Controller
         return view('products.create', $data);
     }
 
-    public function store(Menu $menu, Request $request)
+    public function store(Menu $menu, StoreProductRequest $request)
     {
-        Gate::authorize('create', Product::class);
-
-        $this->productService->storeProduct($menu, $request);
+        $this->productService->storeProduct($menu, $request->validated());
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Product created'], 201);
         }
 
-        return redirect()->route('menu.show', $menu)->with('success', 'Продукт додано!');
+        return redirect()
+            ->route('menu.show', $menu)
+            ->with('success', 'Продукт додано!');
     }
 
     public function edit(Menu $menu, Product $product, Request $request)
@@ -78,17 +80,17 @@ class ProductController extends Controller
         return view('products.edit', $data);
     }
 
-    public function update(Menu $menu, Product $product, Request $request)
+    public function update(Menu $menu, Product $product, UpdateProductRequest $request)
     {
-        Gate::authorize('update', $product);
-
-        $this->productService->updateProduct($menu, $product, $request);
+        $this->productService->updateProduct($menu, $product, $request->validated());
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Product updated'], 200);
         }
 
-        return redirect()->route('menu.show', $menu)->with('success', 'Продукт оновлено!');
+        return redirect()
+            ->route('menu.show', $menu)
+            ->with('success', 'Продукт оновлено!');
     }
 
     public function storeComment(Menu $menu, Product $product, Request $request)

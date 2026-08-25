@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,9 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     protected $fillable = ['name', 'price', 'menu_id', 'image', 'description', 'category_id', 'size'];
-
-    /** @use HasFactory<ProductFactory> */
-    use HasFactory;
 
     protected function casts(): array
     {
