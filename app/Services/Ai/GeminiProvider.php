@@ -56,7 +56,7 @@ class GeminiProvider implements AiProviderInterface
                 ])
                 ->connectTimeout(5)
                 ->timeout(20)
-                ->retry(2, 250)
+                ->retry(AiHttpRetryPolicy::delays(), 0, [AiHttpRetryPolicy::class, 'shouldRetry'])
                 ->post(sprintf(
                     '%s/models/%s:generateContent',
                     rtrim((string) config('services.ai.gemini.base_url'), '/'),
@@ -70,6 +70,7 @@ class GeminiProvider implements AiProviderInterface
                         'maxOutputTokens' => 1000,
                         'temperature' => 0.2,
                         'responseMimeType' => 'application/json',
+                        'responseJsonSchema' => AiRecommendationSchema::definition(),
                     ],
                 ])
                 ->throw();
@@ -91,6 +92,7 @@ class GeminiProvider implements AiProviderInterface
                     default => 'Gemini тимчасово не відповідає. Спробуйте пізніше.',
                 },
                 previous: $exception,
+                fallbackAllowed: AiHttpRetryPolicy::fallbackAllowedForStatus($status),
             );
         } catch (ConnectionException $exception) {
             Log::warning('Could not connect to Gemini API.', [

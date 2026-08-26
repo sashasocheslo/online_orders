@@ -7,7 +7,10 @@ use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
 use App\Services\Contracts\AiProviderInterface;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OpenAiProvider implements AiProviderInterface
@@ -26,11 +29,8 @@ class OpenAiProvider implements AiProviderInterface
     /**
      * @param  list<AiConversationMessage>  $history
      */
-    public function generate(
-        string $systemPrompt,
-        string $userPrompt,
-        array $history = [],
-    ): string {
+    public function generate(string $systemPrompt, string $userPrompt, array $history = []): string
+    {
         if (! $this->configured()) {
             throw new AiProviderNotConfiguredException('ChatGPT поки не налаштовано.');
         }
@@ -40,10 +40,7 @@ class OpenAiProvider implements AiProviderInterface
                 'role' => $message->role,
                 'content' => $message->content,
             ])
-            ->push([
-                'role' => 'user',
-                'content' => $userPrompt,
-            ])
+            ->push(['role' => 'user', 'content' => $userPrompt])
             ->all();
 
         try {
@@ -52,28 +49,59 @@ class OpenAiProvider implements AiProviderInterface
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(20)
-                ->retry(2, 250)
+                ->retry(AiHttpRetryPolicy::delays(), 0, [AiHttpRetryPolicy::class, 'shouldRetry'])
                 ->post('/responses', [
                     'model' => (string) config('services.ai.openai.model'),
                     'instructions' => $systemPrompt,
                     'input' => $input,
                     'max_output_tokens' => 500,
-                    'reasoning' => [
-                        'effort' => 'none',
-                    ],
+                    'reasoning' => ['effort' => 'none'],
                     'text' => [
                         'format' => [
                             'type' => 'json_schema',
                             'name' => 'menu_recommendation',
                             'strict' => true,
-                            'schema' => $this->responseSchema(),
+                            'schema' => AiRecommendationSchema::definition(),
                         ],
                     ],
                     'store' => false,
                 ])
                 ->throw();
+        } catch (RequestException $exception) {
+            $status = $exception->response->status();
+
+            Log::warning('OpenAI API request failed.', [
+                'provider' => $this->provider()->value,
+                'status' => $status,
+                'request_id' => $exception->response->header('x-request-id'),
+            ]);
+
+            throw new AiProviderException(
+                match ($status) {
+                    400 => 'ChatGPT відхилив запит. Перевірте назву моделі.',
+                    401, 403 => 'ChatGPT не прийняв API-ключ. Перевірте ключ і його дозволи.',
+                    404 => 'Обрана модель ChatGPT недоступна. Перевірте OPENAI_MODEL.',
+                    429 => 'Ліміт запитів ChatGPT вичерпано. Спробуйте пізніше.',
+                    default => 'ChatGPT тимчасово не відповідає. Спробуйте пізніше.',
+                },
+                previous: $exception,
+                fallbackAllowed: AiHttpRetryPolicy::fallbackAllowedForStatus($status),
+            );
+        } catch (ConnectionException $exception) {
+            Log::warning('Could not connect to OpenAI API.', [
+                'provider' => $this->provider()->value,
+                'exception' => $exception::class,
+            ]);
+
+            throw new AiProviderException(
+                'Не вдалося з’єднатися з ChatGPT. Перевірте інтернет-з’єднання контейнера.',
+                previous: $exception,
+            );
         } catch (Throwable $exception) {
-            report($exception);
+            Log::warning('Unexpected OpenAI provider error.', [
+                'provider' => $this->provider()->value,
+                'exception' => $exception::class,
+            ]);
 
             throw new AiProviderException(
                 'ChatGPT тимчасово не відповідає. Спробуйте пізніше.',
@@ -93,29 +121,5 @@ class OpenAiProvider implements AiProviderInterface
         }
 
         return trim($text);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function responseSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'message' => [
-                    'type' => 'string',
-                ],
-                'product_ids' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'integer',
-                    ],
-                    'maxItems' => 3,
-                ],
-            ],
-            'required' => ['message', 'product_ids'],
-            'additionalProperties' => false,
-        ];
     }
 }

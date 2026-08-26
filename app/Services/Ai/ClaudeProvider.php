@@ -7,7 +7,10 @@ use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
 use App\Services\Contracts\AiProviderInterface;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ClaudeProvider implements AiProviderInterface
@@ -26,11 +29,8 @@ class ClaudeProvider implements AiProviderInterface
     /**
      * @param  list<AiConversationMessage>  $history
      */
-    public function generate(
-        string $systemPrompt,
-        string $userPrompt,
-        array $history = [],
-    ): string {
+    public function generate(string $systemPrompt, string $userPrompt, array $history = []): string
+    {
         if (! $this->configured()) {
             throw new AiProviderNotConfiguredException('Claude поки не налаштовано.');
         }
@@ -40,10 +40,7 @@ class ClaudeProvider implements AiProviderInterface
                 'role' => $message->role,
                 'content' => $message->content,
             ])
-            ->push([
-                'role' => 'user',
-                'content' => $userPrompt,
-            ])
+            ->push(['role' => 'user', 'content' => $userPrompt])
             ->all();
 
         try {
@@ -55,7 +52,7 @@ class ClaudeProvider implements AiProviderInterface
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(20)
-                ->retry(2, 250)
+                ->retry(AiHttpRetryPolicy::delays(), 0, [AiHttpRetryPolicy::class, 'shouldRetry'])
                 ->post('/messages', [
                     'model' => (string) config('services.ai.anthropic.model'),
                     'max_tokens' => 500,
@@ -63,13 +60,48 @@ class ClaudeProvider implements AiProviderInterface
                     'output_config' => [
                         'format' => [
                             'type' => 'json_schema',
-                            'schema' => $this->responseSchema(),
+                            'schema' => AiRecommendationSchema::definition(),
                         ],
                     ],
                     'messages' => $messages,
                 ])
                 ->throw();
+        } catch (RequestException $exception) {
+            $status = $exception->response->status();
+
+            Log::warning('Claude API request failed.', [
+                'provider' => $this->provider()->value,
+                'status' => $status,
+                'request_id' => $exception->response->header('request-id'),
+            ]);
+
+            throw new AiProviderException(
+                match ($status) {
+                    400 => 'Claude відхилив запит. Перевірте назву моделі.',
+                    401, 403 => 'Claude не прийняв API-ключ. Перевірте ключ і його дозволи.',
+                    404 => 'Обрана модель Claude недоступна. Перевірте ANTHROPIC_MODEL.',
+                    429 => 'Ліміт запитів Claude вичерпано. Спробуйте пізніше.',
+                    default => 'Claude тимчасово не відповідає. Спробуйте пізніше.',
+                },
+                previous: $exception,
+                fallbackAllowed: AiHttpRetryPolicy::fallbackAllowedForStatus($status),
+            );
+        } catch (ConnectionException $exception) {
+            Log::warning('Could not connect to Claude API.', [
+                'provider' => $this->provider()->value,
+                'exception' => $exception::class,
+            ]);
+
+            throw new AiProviderException(
+                'Не вдалося з’єднатися з Claude. Перевірте інтернет-з’єднання контейнера.',
+                previous: $exception,
+            );
         } catch (Throwable $exception) {
+            Log::warning('Unexpected Claude provider error.', [
+                'provider' => $this->provider()->value,
+                'exception' => $exception::class,
+            ]);
+
             throw new AiProviderException(
                 'Claude тимчасово не відповідає. Спробуйте пізніше.',
                 previous: $exception,
@@ -87,29 +119,5 @@ class ClaudeProvider implements AiProviderInterface
         }
 
         return trim($text);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function responseSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'message' => [
-                    'type' => 'string',
-                ],
-                'product_ids' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'integer',
-                    ],
-                    'maxItems' => 3,
-                ],
-            ],
-            'required' => ['message', 'product_ids'],
-            'additionalProperties' => false,
-        ];
     }
 }
