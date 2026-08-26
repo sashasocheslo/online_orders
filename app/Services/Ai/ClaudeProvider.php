@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Data\AiConversationMessage;
 use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
@@ -22,11 +23,28 @@ class ClaudeProvider implements AiProviderInterface
             && filled(config('services.ai.anthropic.model'));
     }
 
-    public function generate(string $systemPrompt, string $userPrompt): string
-    {
+    /**
+     * @param  list<AiConversationMessage>  $history
+     */
+    public function generate(
+        string $systemPrompt,
+        string $userPrompt,
+        array $history = [],
+    ): string {
         if (! $this->configured()) {
             throw new AiProviderNotConfiguredException('Claude поки не налаштовано.');
         }
+
+        $messages = collect($history)
+            ->map(fn (AiConversationMessage $message): array => [
+                'role' => $message->role,
+                'content' => $message->content,
+            ])
+            ->push([
+                'role' => 'user',
+                'content' => $userPrompt,
+            ])
+            ->all();
 
         try {
             $response = Http::baseUrl((string) config('services.ai.anthropic.base_url'))
@@ -48,10 +66,7 @@ class ClaudeProvider implements AiProviderInterface
                             'schema' => $this->responseSchema(),
                         ],
                     ],
-                    'messages' => [[
-                        'role' => 'user',
-                        'content' => $userPrompt,
-                    ]],
+                    'messages' => $messages,
                 ])
                 ->throw();
         } catch (Throwable $exception) {

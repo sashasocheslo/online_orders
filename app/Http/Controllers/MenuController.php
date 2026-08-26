@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\AiConversationMessage;
 use App\Enums\AiProvider;
 use App\Models\Menu;
 use App\Services\Contracts\AiAssistantServiceInterface;
+use App\Services\Contracts\AiConversationServiceInterface;
 use App\Services\Contracts\MenuServiceInterface;
 use Illuminate\Http\Request;
 
@@ -13,6 +15,7 @@ class MenuController extends Controller
     public function __construct(
         private readonly MenuServiceInterface $menuService,
         private readonly AiAssistantServiceInterface $aiAssistant,
+        private readonly AiConversationServiceInterface $aiConversation,
     ) {}
 
     public function index(Request $request)
@@ -56,6 +59,12 @@ class MenuController extends Controller
             'products' => $data['products'],
             'aiProviders' => AiProvider::cases(),
             'availableAiProviders' => $availableAiProviders,
+            'aiConversation' => $request->user() === null
+                ? []
+                : array_map(
+                    fn (AiConversationMessage $message): array => $message->toArray(),
+                    $this->aiConversation->history($menu),
+                ),
         ]);
     }
 }

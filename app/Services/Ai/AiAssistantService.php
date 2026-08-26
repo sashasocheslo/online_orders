@@ -9,6 +9,7 @@ use App\Exceptions\AiProviderNotConfiguredException;
 use App\Models\Menu;
 use App\Models\Product;
 use App\Services\Contracts\AiAssistantServiceInterface;
+use App\Services\Contracts\AiConversationServiceInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,6 +17,7 @@ class AiAssistantService implements AiAssistantServiceInterface
 {
     public function __construct(
         private readonly AiProviderRegistry $providers,
+        private readonly AiConversationServiceInterface $conversations,
     ) {}
 
     public function availableProviders(): array
@@ -85,8 +87,18 @@ PROMPT;
             'question' => $question,
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
-        $rawAnswer = $adapter->generate($systemPrompt, $userPrompt);
+        $rawAnswer = $adapter->generate(
+            $systemPrompt,
+            $userPrompt,
+            $this->conversations->history($menu),
+        );
         $parsedAnswer = $this->parseProviderAnswer($rawAnswer);
+
+        $this->conversations->rememberExchange(
+            $menu,
+            $question,
+            $parsedAnswer['message'],
+        );
 
         return new AiAnswer(
             provider: $provider,

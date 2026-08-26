@@ -13,10 +13,12 @@ use App\Policies\CommentPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Services\Ai\AiAssistantService;
+use App\Services\Ai\AiConversationService;
 use App\Services\ApiTokenService;
 use App\Services\AuthService;
 use App\Services\CartProductService;
 use App\Services\Contracts\AiAssistantServiceInterface;
+use App\Services\Contracts\AiConversationServiceInterface;
 use App\Services\Contracts\ApiTokenServiceInterface;
 use App\Services\Contracts\AuthServiceInterface;
 use App\Services\Contracts\CartProductServiceInterface;
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AiAssistantServiceInterface::class, AiAssistantService::class);
+        $this->app->bind(AiConversationServiceInterface::class, AiConversationService::class);
         $this->app->bind(ApiTokenServiceInterface::class, ApiTokenService::class);
         $this->app->bind(PaymentGatewayInterface::class, StripeService::class);
         $this->app->bind(PaymentServiceInterface::class, PaymentService::class);

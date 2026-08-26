@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AiAssistantController;
+use App\Http\Controllers\AiConversationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartProductController;
 use App\Http\Controllers\MenuController;
@@ -34,6 +35,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/menu/{menu}/ai/recommendations', AiAssistantController::class)
         ->middleware('throttle:ai-recommendations')
         ->name('menu.ai.recommendations');
+
+    Route::delete('/menu/{menu}/ai/conversation', [AiConversationController::class, 'destroy'])
+        ->name('menu.ai.conversation.destroy');
 
     Route::resource('menu.products', ProductController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy'])

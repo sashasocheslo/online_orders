@@ -2,6 +2,7 @@
 
 namespace App\Services\Contracts;
 
+use App\Data\AiConversationMessage;
 use App\Enums\AiProvider;
 
 interface AiProviderInterface
@@ -10,5 +11,12 @@ interface AiProviderInterface
 
     public function configured(): bool;
 
-    public function generate(string $systemPrompt, string $userPrompt): string;
+    /**
+     * @param  list<AiConversationMessage>  $history
+     */
+    public function generate(
+        string $systemPrompt,
+        string $userPrompt,
+        array $history = [],
+    ): string;
 }
