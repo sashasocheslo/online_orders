@@ -22,10 +22,14 @@ Route::post('/stripe/webhook', StripeWebhookController::class)
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:web-auth')
+        ->name('login.store');
 
     Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::post('/register', [AuthController::class, 'register'])
+        ->middleware('throttle:web-auth')
+        ->name('register.store');
 });
 
 Route::middleware('auth')->group(function () {

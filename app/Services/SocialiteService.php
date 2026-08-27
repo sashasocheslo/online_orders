@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Services\Contracts\SocialiteServiceInterface;
-use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Throwable;
 
 class SocialiteService implements SocialiteServiceInterface
 {
@@ -27,14 +29,18 @@ class SocialiteService implements SocialiteServiceInterface
             $user = User::create([
                 'name' => $googleUser->name,
                 'email' => $googleUser->email,
-                'password' => Hash::make('password'),
+                'password' => Hash::make(Str::random(64)),
                 'google_id' => $googleUser->id,
             ]);
 
             Auth::login($user);
 
             return $user;
-        } catch (Exception $e) {
+        } catch (Throwable $exception) {
+            Log::warning('Google OAuth authentication failed.', [
+                'exception' => $exception::class,
+            ]);
+
             return null;
         }
     }

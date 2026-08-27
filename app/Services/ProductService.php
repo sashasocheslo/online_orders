@@ -31,7 +31,7 @@ class ProductService implements ProductServiceInterface
             ->when($search, fn ($query) => $query->search($search))
             ->categories($filters)
             ->orderBy('price', 'asc')
-            ->with(['comments.user'])
+            ->with(['category:id,name', 'comments.user'])
             ->get();
 
         return [

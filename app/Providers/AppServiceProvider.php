@@ -39,6 +39,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -71,6 +72,10 @@ class AppServiceProvider extends ServiceProvider
                     : $user->getAuthIdentifier().'|'.mb_strtolower($user->email),
             );
         });
+
+        RateLimiter::for('web-auth', fn (Request $request): Limit => Limit::perMinute(5)->by(
+            $request->ip().'|'.Str::lower((string) $request->input('email')),
+        ));
 
         Gate::policy(Cart::class, CartPolicy::class);
         Gate::policy(CartProduct::class, CartProductPolicy::class);

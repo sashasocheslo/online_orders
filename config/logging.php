@@ -7,6 +7,8 @@ use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
 
+    'slow_request_ms' => (float) env('LOG_SLOW_REQUEST_MS', 1000),
+
     /*
     |--------------------------------------------------------------------------
     | Default Log Channel
