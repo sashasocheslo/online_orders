@@ -43,13 +43,14 @@ test('cart item and comment expose correct relationships and casts', function ()
     // Arrange.
     $user = User::factory()->create();
 
-    $cart = Cart::query()->create([
-        'user_id' => $user->id,
-    ]);
-
     $menu = Menu::query()->create([
         'name' => 'Тестове меню',
         'image' => 'menu.png',
+    ]);
+
+    $cart = Cart::query()->create([
+        'user_id' => $user->id,
+        'menu_id' => $menu->id,
     ]);
 
     $category = Category::query()->create([
@@ -78,7 +79,8 @@ test('cart item and comment expose correct relationships and casts', function ()
     ]);
 
     // Assert.
-    expect($user->cart->is($cart))->toBeTrue()
+    expect($user->carts->modelKeys())->toContain($cart->id)
+        ->and($cart->menu->is($menu))->toBeTrue()
         ->and($cartProduct->cart->is($cart))->toBeTrue()
         ->and($cartProduct->product->is($product))->toBeTrue()
         ->and($cartProduct->quantity)->toBe(3)

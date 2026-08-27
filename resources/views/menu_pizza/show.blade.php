@@ -1,4 +1,4 @@
-<x-layout>
+<x-layout :menu="$menu">
     <div class="container-fluid mt-0">
 
         <div class="row justify-content-center">
@@ -87,7 +87,7 @@
 
                 <x-card class="mt-3">
                     <div class="row g-2 justify-content-start">
-                        <x-product.index :products="$products" :cart="$cart"/>
+                        <x-product.index :products="$products"/>
                     </div>
                 </x-card>
 

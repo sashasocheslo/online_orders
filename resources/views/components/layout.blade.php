@@ -1,3 +1,5 @@
+@props(['menu' => null])
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,7 +39,12 @@
                     @method('DELETE')
                     <button class="btn btn-outline-light btn-sm">Вийти</button>
                 </form>
-                <a href="{{ route('cart_product.index') }}" class="text-white fs-4">
+                <a
+                    href="{{ $menu ? route('menu.cart.index', $menu) : route('menu.index') }}"
+                    class="text-white fs-4"
+                    aria-label="{{ $menu ? 'Кошик '.$menu->name : 'Оберіть ресторан' }}"
+                    title="{{ $menu ? 'Кошик '.$menu->name : 'Спочатку оберіть ресторан' }}"
+                >
                     <i class="bi bi-cart-fill"></i>
                 </a>
             @else
@@ -64,6 +71,13 @@
                         @method('DELETE')
                         <button class="btn btn-outline-light btn-sm">Вийти</button>
                     </form>
+                    <a
+                        href="{{ $menu ? route('menu.cart.index', $menu) : route('menu.index') }}"
+                        class="text-white fs-4"
+                        aria-label="{{ $menu ? 'Кошик '.$menu->name : 'Оберіть ресторан' }}"
+                    >
+                        <i class="bi bi-cart-fill"></i>
+                    </a>
                 </div>
             @else
                 <a href="{{ route('login') }}"

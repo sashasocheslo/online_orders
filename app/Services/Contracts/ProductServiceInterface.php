@@ -14,8 +14,6 @@ interface ProductServiceInterface
 
     public function searchCatalog(array $filters): array;
 
-    public function getOrCreateCart();
-
     public function createProduct(Menu $menu): array;
 
     public function storeProduct(Menu $menu, array $data): Product;

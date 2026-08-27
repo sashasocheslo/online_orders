@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Cart;
+use App\Http\Requests\StoreCartProductRequest;
+use App\Http\Requests\UpdateCartProductRequest;
 use App\Models\CartProduct;
+use App\Models\Menu;
+use App\Models\Product;
 use App\Models\User;
 use App\Services\Contracts\CartProductServiceInterface;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class CartProductController extends Controller
 {
@@ -18,46 +23,72 @@ class CartProductController extends Controller
         $this->cartService = $cartService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $cartProducts = $this->cartService->listCartProducts($user);
+        $carts = $this->cartService->listCarts($user);
 
-        if ($request->wantsJson()) {
-            return response()->json($cartProducts, 200);
-        }
-
-        return view('cart_product.index', ['cart_products' => $cartProducts]);
+        return response()->json($carts, 200);
     }
 
-    public function store(Request $request)
+    public function showForMenu(Menu $menu, Request $request): View
     {
-        $validated = $request->validate([
-            'cart_id' => 'required|exists:carts,id',
-            'product_id' => 'required|exists:products,id',
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $cart = $this->cartService->findCart($user, $menu);
+
+        return view('cart_product.index', [
+            'menu' => $menu,
+            'cart' => $cart,
         ]);
+    }
 
-        $cart = Cart::query()->findOrFail($validated['cart_id']);
-        Gate::authorize('update', $cart);
+    public function store(StoreCartProductRequest $request)
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
-        $this->cartService->addProduct($validated['cart_id'], $validated['product_id']);
+        $product = Product::query()->findOrFail(
+            $request->integer('product_id'),
+        );
+
+        $cartProduct = $this->cartService->addProduct($user, $product);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'Product added to cart',
-                'cart_id' => $validated['cart_id'],
-                'product_id' => $validated['product_id'],
+                'cart_product' => $cartProduct,
             ], 201);
         }
 
-        return redirect()->back();
+        return back()->with('success', 'Товар додано до кошика.');
+    }
+
+    public function update(
+        CartProduct $cartProduct,
+        UpdateCartProductRequest $request,
+    ) {
+        $cartProduct = $this->cartService->updateQuantity(
+            $cartProduct,
+            $request->integer('quantity'),
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Cart quantity updated',
+                'cart_product' => $cartProduct,
+            ], 200);
+        }
+
+        return back()->with('success', 'Кількість товару оновлено.');
     }
 
     public function destroy(CartProduct $cartProduct, Request $request)
     {
-        Gate::authorize('update', $cartProduct);
+        Gate::authorize('delete', $cartProduct);
 
         $this->cartService->removeProduct($cartProduct);
 
@@ -65,6 +96,6 @@ class CartProductController extends Controller
             return response()->json(null, 204);
         }
 
-        return redirect()->back();
+        return back()->with('success', 'Товар видалено з кошика.');
     }
 }

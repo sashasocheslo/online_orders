@@ -67,10 +67,13 @@ test('authenticated user can add a comment through the web route', function () {
     ]);
 });
 
-test('cart owner can increase and decrease product quantity', function () {
+test('cart owner can add update and remove a product', function () {
     $user = User::factory()->create();
-    $cart = Cart::query()->create(['user_id' => $user->id]);
-    ['product' => $product] = createProductForAuthorizationTest();
+    ['menu' => $menu, 'product' => $product] = createProductForAuthorizationTest();
+    $cart = Cart::query()->create([
+        'user_id' => $user->id,
+        'menu_id' => $menu->id,
+    ]);
 
     $cartProduct = CartProduct::query()->create([
         'cart_id' => $cart->id,
@@ -81,7 +84,6 @@ test('cart owner can increase and decrease product quantity', function () {
 
     $this->actingAs($user)
         ->post(route('cart_product.store'), [
-            'cart_id' => $cart->id,
             'product_id' => $product->id,
         ])
         ->assertRedirect();
@@ -89,17 +91,29 @@ test('cart owner can increase and decrease product quantity', function () {
     expect($cartProduct->refresh()->quantity)->toBe(2);
 
     $this->actingAs($user)
-        ->delete(route('cart_product.destroy', $cartProduct))
+        ->patch(route('cart_product.update', $cartProduct), [
+            'quantity' => 1,
+        ])
         ->assertRedirect();
 
     expect($cartProduct->refresh()->quantity)->toBe(1);
+
+    $this->actingAs($user)
+        ->delete(route('cart_product.destroy', $cartProduct))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('cart_products', ['id' => $cartProduct->id]);
+    $this->assertDatabaseMissing('carts', ['id' => $cart->id]);
 });
 
-test('user cannot change another users cart', function () {
+test('user cannot change another users cart item', function () {
     $owner = User::factory()->create();
     $stranger = User::factory()->create();
-    $cart = Cart::query()->create(['user_id' => $owner->id]);
-    ['product' => $product] = createProductForAuthorizationTest();
+    ['menu' => $menu, 'product' => $product] = createProductForAuthorizationTest();
+    $cart = Cart::query()->create([
+        'user_id' => $owner->id,
+        'menu_id' => $menu->id,
+    ]);
 
     $cartProduct = CartProduct::query()->create([
         'cart_id' => $cart->id,
@@ -109,9 +123,8 @@ test('user cannot change another users cart', function () {
     ]);
 
     $this->actingAs($stranger)
-        ->post(route('cart_product.store'), [
-            'cart_id' => $cart->id,
-            'product_id' => $product->id,
+        ->patch(route('cart_product.update', $cartProduct), [
+            'quantity' => 2,
         ])
         ->assertForbidden();
 
@@ -120,7 +133,7 @@ test('user cannot change another users cart', function () {
         ->assertForbidden();
 
     $this->actingAs($stranger)
-        ->get(route('cart_product.index'))
+        ->get(route('menu.cart.index', $menu))
         ->assertOk()
         ->assertDontSeeText($product->name);
 

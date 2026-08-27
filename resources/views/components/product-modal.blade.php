@@ -13,19 +13,24 @@
                             <strong>Розмір:</strong> {{ $product->size ?? 'Немає' }}
                         </p>
 
-                        <x-product-card :cart="$cart" :product="$product" type="modal" :$attributes>
-                            @can('add', $product)
-                            <form action="{{ route('cart_product.store') }}" method="POST">
-                                @csrf
-                                <x-text-input type="hidden" name="cart_id" :value="$cart?->id" />
-                                <x-text-input type="hidden" name="product_id" value="{{ $product->id }}" />
-                                <x-button>Додати до кошика</x-button>
-                            </form>
-                        @else
-                            <div class="text-center py-2 fw-bold">
-                                Необхідно пройти реєстрацію
-                            </div>
-                        @endcan
+                        <x-product-card :product="$product" type="modal" :$attributes>
+                            @auth
+                                @can('add', $product)
+                                    <form action="{{ route('cart_product.store') }}" method="POST">
+                                        @csrf
+                                        <x-text-input type="hidden" name="product_id" value="{{ $product->id }}" />
+                                        <x-button>Додати до кошика</x-button>
+                                    </form>
+                                @else
+                                    <div class="text-center py-2 fw-bold text-success">
+                                        Товар уже в кошику
+                                    </div>
+                                @endcan
+                            @else
+                                <div class="text-center py-2 fw-bold">
+                                    Увійдіть, щоб додати товар до кошика
+                                </div>
+                            @endauth
                         </x-product-card>
                     </div>
                 @endforeach

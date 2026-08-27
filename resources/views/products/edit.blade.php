@@ -1,4 +1,4 @@
-<x-layout>
+<x-layout :menu="$menu">
     <div class="container">
         <h2 class="text-white mb-4">Редагувати товар</h2>
 

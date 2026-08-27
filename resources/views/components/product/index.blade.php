@@ -7,6 +7,6 @@
                 </x-button>
             </x-product-card>
         </div>
-        <x-product-modal :$name :products="$product" :cart="$cart" />
+        <x-product-modal :$name :products="$product" />
     @endforeach
 </div>
