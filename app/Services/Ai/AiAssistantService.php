@@ -6,11 +6,13 @@ use App\Data\AiAnswer;
 use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
+use App\Exceptions\InvalidAiResponseException;
 use App\Models\Menu;
 use App\Models\Product;
 use App\Services\Contracts\AiAssistantServiceInterface;
 use App\Services\Contracts\AiConversationServiceInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AiAssistantService implements AiAssistantServiceInterface
@@ -18,6 +20,8 @@ class AiAssistantService implements AiAssistantServiceInterface
     public function __construct(
         private readonly AiProviderRegistry $providers,
         private readonly AiConversationServiceInterface $conversations,
+        private readonly AiRecommendationParser $parser,
+        private readonly LocalAiRecommendationFallback $fallback,
     ) {}
 
     public function availableProviders(): array
@@ -87,65 +91,65 @@ PROMPT;
             'question' => $question,
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
-        $rawAnswer = $adapter->generate(
-            $systemPrompt,
-            $userPrompt,
-            $this->conversations->history($menu),
-        );
-        $parsedAnswer = $this->parseProviderAnswer($rawAnswer);
+        try {
+            $rawAnswer = $adapter->generate(
+                $systemPrompt,
+                $userPrompt,
+                $this->conversations->history($menu),
+            );
+            $parsedAnswer = $this->parser->parse($rawAnswer);
+        } catch (InvalidAiResponseException $exception) {
+            Log::warning('AI provider returned an invalid recommendation payload.', [
+                'provider' => $provider->value,
+                'menu_id' => $menu->id,
+                'exception' => $exception::class,
+            ]);
+
+            return $this->fallbackAnswer($menu, $provider, $products);
+        } catch (AiProviderException $exception) {
+            if (! $exception->fallbackAllowed) {
+                throw $exception;
+            }
+
+            Log::warning('AI provider is unavailable; local fallback was used.', [
+                'provider' => $provider->value,
+                'menu_id' => $menu->id,
+                'exception' => $exception::class,
+            ]);
+
+            return $this->fallbackAnswer($menu, $provider, $products);
+        }
 
         $this->conversations->rememberExchange(
             $menu,
             $question,
-            $parsedAnswer['message'],
+            $parsedAnswer->message,
         );
 
         return new AiAnswer(
             provider: $provider,
-            text: $parsedAnswer['message'],
+            text: $parsedAnswer->message,
             products: $this->recommendedProducts(
                 $menu,
                 $products,
-                $parsedAnswer['product_ids'],
+                $parsedAnswer->productIds,
             ),
         );
     }
 
     /**
-     * @return array{message: string, product_ids: array<int, int>}
+     * @param  Collection<int, Product>  $products
      */
-    private function parseProviderAnswer(string $answer): array
+    private function fallbackAnswer(Menu $menu, AiProvider $provider, Collection $products): AiAnswer
     {
-        $normalized = trim($answer);
-        $jsonStart = strpos($normalized, '{');
-        $jsonEnd = strrpos($normalized, '}');
+        $fallback = $this->fallback->recommend($products);
 
-        if ($jsonStart !== false && $jsonEnd !== false && $jsonEnd >= $jsonStart) {
-            $decoded = json_decode(
-                substr($normalized, $jsonStart, $jsonEnd - $jsonStart + 1),
-                true,
-            );
-
-            if (is_array($decoded) && is_string($decoded['message'] ?? null)) {
-                $productIds = collect($decoded['product_ids'] ?? [])
-                    ->filter(fn (mixed $id): bool => is_int($id) || (is_string($id) && ctype_digit($id)))
-                    ->map(fn (mixed $id): int => (int) $id)
-                    ->unique()
-                    ->take(3)
-                    ->values()
-                    ->all();
-
-                return [
-                    'message' => trim($decoded['message']),
-                    'product_ids' => $productIds,
-                ];
-            }
-        }
-
-        return [
-            'message' => $normalized,
-            'product_ids' => [],
-        ];
+        return new AiAnswer(
+            provider: $provider,
+            text: $fallback->message,
+            products: $this->recommendedProducts($menu, $products, $fallback->productIds),
+            fallback: true,
+        );
     }
 
     /**

@@ -133,6 +133,10 @@
             color: #198754;
         }
 
+        #{{ $assistantId }} .ai-chat-activity-warning {
+            color: #9a6700;
+        }
+
         #{{ $assistantId }} .ai-chat-activity-error {
             color: #dc3545;
         }
@@ -675,8 +679,14 @@
                     pendingActivity.remove();
                     appendMessage(data.answer, 'assistant');
                     appendProductCards(data.products, formData.get('_token'));
-                    appendActivity(`Відповів ${data.provider_label}.`, 'success');
-                    statusElement.textContent = `Відповів ${data.provider_label}.`;
+
+                    if (data.fallback) {
+                        appendActivity('Показано локальний резервний підбір.', 'warning');
+                        statusElement.textContent = 'Локальний резервний підбір.';
+                    } else {
+                        appendActivity(`Відповів ${data.provider_label}.`, 'success');
+                        statusElement.textContent = `Відповів ${data.provider_label}.`;
+                    }
                 } catch (error) {
                     pendingActivity.remove();
                     const message = error instanceof Error

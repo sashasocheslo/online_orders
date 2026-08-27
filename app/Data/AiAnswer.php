@@ -13,6 +13,7 @@ final readonly class AiAnswer
         public AiProvider $provider,
         public string $text,
         public array $products = [],
+        public bool $fallback = false,
     ) {}
 
     /**
@@ -20,6 +21,7 @@ final readonly class AiAnswer
      *     provider: string,
      *     provider_label: string,
      *     answer: string,
+     *     fallback: bool,
      *     products: array<int, array{id: int, name: string, price: string, image_url: string, url: string}>
      * }
      */
@@ -30,6 +32,7 @@ final readonly class AiAnswer
             'provider_label' => $this->provider->label(),
             'answer' => $this->text,
             'products' => $this->products,
+            'fallback' => $this->fallback,
         ];
     }
 }

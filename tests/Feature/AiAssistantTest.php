@@ -67,6 +67,17 @@ function configureAiTestProvider(string $provider): void
     ]);
 }
 
+/**
+ * @param  list<int>  $productIds
+ */
+function aiRecommendationJson(string $message, array $productIds = []): string
+{
+    return json_encode([
+        'message' => $message,
+        'product_ids' => $productIds,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+}
+
 test('AI assistant is hidden from guests and its endpoint requires authentication', function () {
     ['menu' => $menu] = createAiAssistantCatalog();
 
@@ -148,7 +159,7 @@ test('Gemini adapter sends a grounded request and reads generated text', functio
             'candidates' => [[
                 'content' => [
                     'parts' => [[
-                        'text' => 'Рекомендую тестовий бургер за 120 грн.',
+                        'text' => aiRecommendationJson('Рекомендую тестовий бургер за 120 грн.'),
                     ]],
                 ],
             ]],
@@ -168,6 +179,7 @@ test('Gemini adapter sends a grounded request and reads generated text', functio
             'provider' => 'gemini',
             'provider_label' => 'Gemini',
             'answer' => 'Рекомендую тестовий бургер за 120 грн.',
+            'fallback' => false,
         ]);
 
     Http::assertSent(function (Request $request) use ($menu, $product): bool {
@@ -175,6 +187,7 @@ test('Gemini adapter sends a grounded request and reads generated text', functio
 
         return str_contains($request->url(), '/models/gemini-test-model:generateContent')
             && $request->hasHeader('x-goog-api-key', 'gemini-test-key')
+            && data_get($request->data(), 'generationConfig.responseJsonSchema.additionalProperties') === false
             && is_string($userPrompt)
             && str_contains($userPrompt, $menu->name)
             && str_contains($userPrompt, $product->name)
@@ -223,7 +236,7 @@ test('OpenAI adapter uses the Responses API and reads output text', function () 
                 'type' => 'message',
                 'content' => [[
                     'type' => 'output_text',
-                    'text' => 'ChatGPT радить тестовий бургер.',
+                    'text' => aiRecommendationJson('ChatGPT радить тестовий бургер.'),
                 ]],
             ]],
         ]),
@@ -259,7 +272,7 @@ test('Claude adapter uses the Messages API and reads text blocks', function () {
         'api.anthropic.com/*' => Http::response([
             'content' => [[
                 'type' => 'text',
-                'text' => 'Claude радить тестовий бургер.',
+                'text' => aiRecommendationJson('Claude радить тестовий бургер.'),
             ]],
         ]),
     ]);
@@ -292,7 +305,7 @@ test('AI prompt contains only the selected restaurants catalog and ignores clien
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
-                'content' => ['parts' => [['text' => 'Безпечна відповідь.']]],
+                'content' => ['parts' => [['text' => aiRecommendationJson('Безпечна відповідь.')]]],
             ]],
         ]),
     ]);
@@ -348,13 +361,77 @@ test('empty menu does not call an external provider', function () {
     Http::assertNothingSent();
 });
 
-test('external provider errors are converted to a safe response', function () {
+test('temporary provider errors use a safe local fallback after retries', function () {
     configureAiTestProvider('gemini');
 
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'error' => ['message' => 'Upstream secret diagnostic'],
         ], 500),
+    ]);
+
+    $user = User::factory()->create();
+    ['menu' => $menu, 'product' => $product] = createAiAssistantCatalog();
+
+    $this->actingAs($user)
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'Що обрати?',
+        ])
+        ->assertOk()
+        ->assertJson([
+            'fallback' => true,
+            'answer' => 'AI-сервіс тимчасово недоступний. Ось кілька найдоступніших товарів із цього меню.',
+        ])
+        ->assertJsonPath('products.0.id', $product->id)
+        ->assertJsonMissing(['message' => 'Upstream secret diagnostic']);
+
+    Http::assertSentCount(3);
+});
+
+test('malformed provider response uses verified local product cards', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => ['parts' => [['text' => 'Not a JSON response']]],
+            ]],
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    ['menu' => $menu, 'category' => $category, 'product' => $expensiveProduct] = createAiAssistantCatalog();
+
+    $cheapestProduct = Product::query()->create([
+        'name' => 'Найдоступніший AI товар',
+        'price' => 25,
+        'description' => 'Локальна рекомендація.',
+        'image' => 'products/local-fallback.png',
+        'menu_id' => $menu->id,
+        'category_id' => $category->id,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'Що обрати?',
+        ])
+        ->assertOk()
+        ->assertJsonPath('fallback', true)
+        ->assertJsonPath('products.0.id', $cheapestProduct->id)
+        ->assertJsonPath('products.1.id', $expensiveProduct->id);
+
+    Http::assertSentCount(1);
+});
+
+test('configuration errors are not hidden by the local fallback', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'error' => ['message' => 'Invalid API key'],
+        ], 401),
     ]);
 
     $user = User::factory()->create();
@@ -367,9 +444,11 @@ test('external provider errors are converted to a safe response', function () {
         ])
         ->assertServiceUnavailable()
         ->assertJson([
-            'message' => 'Gemini тимчасово не відповідає. Спробуйте пізніше.',
+            'message' => 'Gemini не прийняв API-ключ. Перевірте ключ і його обмеження.',
         ])
-        ->assertJsonMissing(['message' => 'Upstream secret diagnostic']);
+        ->assertJsonMissingPath('fallback');
+
+    Http::assertSentCount(1);
 });
 
 test('AI endpoint limits an authenticated user to five requests per minute', function () {
@@ -378,7 +457,7 @@ test('AI endpoint limits an authenticated user to five requests per minute', fun
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
-                'content' => ['parts' => [['text' => 'Тестова відповідь.']]],
+                'content' => ['parts' => [['text' => aiRecommendationJson('Тестова відповідь.')]]],
             ]],
         ]),
     ]);
@@ -413,9 +492,9 @@ test('follow-up recommendation includes the previous successful exchange', funct
     Http::fake(function (Request $request) use (&$requests) {
         $requests[] = $request;
 
-        $answer = count($requests) === 1
-            ? 'First recommendation'
-            : 'Cheaper recommendation';
+        $answer = aiRecommendationJson(
+            count($requests) === 1 ? 'First recommendation' : 'Cheaper recommendation',
+        );
 
         return Http::response([
             'candidates' => [[
@@ -462,7 +541,7 @@ test('all AI provider adapters map the shared conversation history to their mess
         return match ($provider) {
             'gemini' => Http::response([
                 'candidates' => [[
-                    'content' => ['parts' => [['text' => 'Gemini follow-up answer']]],
+                    'content' => ['parts' => [['text' => aiRecommendationJson('Gemini follow-up answer')]]],
                 ]],
             ]),
             'openai' => Http::response([
@@ -470,14 +549,14 @@ test('all AI provider adapters map the shared conversation history to their mess
                     'type' => 'message',
                     'content' => [[
                         'type' => 'output_text',
-                        'text' => 'OpenAI follow-up answer',
+                        'text' => aiRecommendationJson('OpenAI follow-up answer'),
                     ]],
                 ]],
             ]),
             'claude' => Http::response([
                 'content' => [[
                     'type' => 'text',
-                    'text' => 'Claude follow-up answer',
+                    'text' => aiRecommendationJson('Claude follow-up answer'),
                 ]],
             ]),
         };
@@ -520,7 +599,7 @@ test('AI conversations are isolated by restaurant', function () {
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
-                'content' => ['parts' => [['text' => 'Isolated answer']]],
+                'content' => ['parts' => [['text' => aiRecommendationJson('Isolated answer')]]],
             ]],
         ]),
     ]);
@@ -559,7 +638,7 @@ test('AI conversations are isolated by authenticated user', function () {
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
-                'content' => ['parts' => [['text' => 'User isolated answer']]],
+                'content' => ['parts' => [['text' => aiRecommendationJson('User isolated answer')]]],
             ]],
         ]),
     ]);
@@ -598,7 +677,7 @@ test('AI conversation retains only the latest three successful exchanges', funct
     Http::fake([
         'generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
-                'content' => ['parts' => [['text' => 'Repeated answer']]],
+                'content' => ['parts' => [['text' => aiRecommendationJson('Repeated answer')]]],
             ]],
         ]),
     ]);
@@ -645,7 +724,8 @@ test('failed provider request is not stored in AI conversation history', functio
             'provider' => 'gemini',
             'question' => 'This request must not be remembered',
         ])
-        ->assertServiceUnavailable()
+        ->assertOk()
+        ->assertJsonPath('fallback', true)
         ->assertSessionMissing($sessionKey);
 });
 
