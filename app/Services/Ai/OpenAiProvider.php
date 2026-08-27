@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Data\AiConversationMessage;
 use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
@@ -22,11 +23,28 @@ class OpenAiProvider implements AiProviderInterface
             && filled(config('services.ai.openai.model'));
     }
 
-    public function generate(string $systemPrompt, string $userPrompt): string
-    {
+    /**
+     * @param  list<AiConversationMessage>  $history
+     */
+    public function generate(
+        string $systemPrompt,
+        string $userPrompt,
+        array $history = [],
+    ): string {
         if (! $this->configured()) {
             throw new AiProviderNotConfiguredException('ChatGPT поки не налаштовано.');
         }
+
+        $input = collect($history)
+            ->map(fn (AiConversationMessage $message): array => [
+                'role' => $message->role,
+                'content' => $message->content,
+            ])
+            ->push([
+                'role' => 'user',
+                'content' => $userPrompt,
+            ])
+            ->all();
 
         try {
             $response = Http::baseUrl((string) config('services.ai.openai.base_url'))
@@ -38,7 +56,7 @@ class OpenAiProvider implements AiProviderInterface
                 ->post('/responses', [
                     'model' => (string) config('services.ai.openai.model'),
                     'instructions' => $systemPrompt,
-                    'input' => $userPrompt,
+                    'input' => $input,
                     'max_output_tokens' => 500,
                     'reasoning' => [
                         'effort' => 'none',

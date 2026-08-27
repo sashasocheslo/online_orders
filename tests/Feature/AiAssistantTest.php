@@ -78,6 +78,9 @@ test('AI assistant is hidden from guests and its endpoint requires authenticatio
         'provider' => 'gemini',
         'question' => 'Порадь бургер',
     ])->assertRedirect(route('login'));
+
+    $this->delete(route('menu.ai.conversation.destroy', $menu))
+        ->assertRedirect(route('login'));
 });
 
 test('authenticated menu page displays all providers and marks unavailable ones', function () {
@@ -400,4 +403,294 @@ test('AI endpoint limits an authenticated user to five requests per minute', fun
         ->assertTooManyRequests();
 
     Http::assertSentCount(5);
+});
+
+test('follow-up recommendation includes the previous successful exchange', function () {
+    configureAiTestProvider('gemini');
+
+    $requests = [];
+
+    Http::fake(function (Request $request) use (&$requests) {
+        $requests[] = $request;
+
+        $answer = count($requests) === 1
+            ? 'First recommendation'
+            : 'Cheaper recommendation';
+
+        return Http::response([
+            'candidates' => [[
+                'content' => ['parts' => [['text' => $answer]]],
+            ]],
+        ]);
+    });
+
+    $user = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+
+    $this->actingAs($user)
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'Recommend a filling dish under 200.',
+        ])
+        ->assertOk();
+
+    $this->actingAs($user)
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'Anything cheaper?',
+        ])
+        ->assertOk();
+
+    expect($requests)->toHaveCount(2);
+
+    $contents = data_get($requests[1]->data(), 'contents');
+
+    expect(array_column($contents, 'role'))->toBe(['user', 'model', 'user'])
+        ->and(data_get($contents, '0.parts.0.text'))->toBe('Recommend a filling dish under 200.')
+        ->and(data_get($contents, '1.parts.0.text'))->toBe('First recommendation')
+        ->and(data_get($contents, '2.parts.0.text'))->toContain('Anything cheaper?');
+});
+
+test('all AI provider adapters map the shared conversation history to their message roles', function (
+    string $provider,
+    string $messagePath,
+    array $expectedRoles,
+) {
+    configureAiTestProvider($provider);
+
+    Http::fake(function () use ($provider) {
+        return match ($provider) {
+            'gemini' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => 'Gemini follow-up answer']]],
+                ]],
+            ]),
+            'openai' => Http::response([
+                'output' => [[
+                    'type' => 'message',
+                    'content' => [[
+                        'type' => 'output_text',
+                        'text' => 'OpenAI follow-up answer',
+                    ]],
+                ]],
+            ]),
+            'claude' => Http::response([
+                'content' => [[
+                    'type' => 'text',
+                    'text' => 'Claude follow-up answer',
+                ]],
+            ]),
+        };
+    });
+
+    $user = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+    $sessionKey = "ai.conversations.user.{$user->id}.menu.{$menu->id}";
+
+    $this->actingAs($user)
+        ->withSession([
+            $sessionKey => [
+                ['role' => 'user', 'content' => 'Original preference'],
+                ['role' => 'assistant', 'content' => 'Original recommendation'],
+            ],
+        ])
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => $provider,
+            'question' => 'Refine that recommendation',
+        ])
+        ->assertOk();
+
+    Http::assertSent(function (Request $request) use ($messagePath, $expectedRoles): bool {
+        $messages = data_get($request->data(), $messagePath, []);
+
+        return array_column($messages, 'role') === $expectedRoles
+            && str_contains(json_encode($messages, JSON_THROW_ON_ERROR), 'Original preference')
+            && str_contains(json_encode($messages, JSON_THROW_ON_ERROR), 'Original recommendation')
+            && str_contains(json_encode($messages, JSON_THROW_ON_ERROR), 'Refine that recommendation');
+    });
+})->with([
+    'Gemini' => ['gemini', 'contents', ['user', 'model', 'user']],
+    'OpenAI' => ['openai', 'input', ['user', 'assistant', 'user']],
+    'Claude' => ['claude', 'messages', ['user', 'assistant', 'user']],
+]);
+
+test('AI conversations are isolated by restaurant', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => ['parts' => [['text' => 'Isolated answer']]],
+            ]],
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    ['menu' => $firstMenu] = createAiAssistantCatalog();
+    ['menu' => $secondMenu] = createAiAssistantCatalog(menuName: 'KFC');
+
+    $firstSessionKey = "ai.conversations.user.{$user->id}.menu.{$firstMenu->id}";
+
+    $this->actingAs($user)
+        ->withSession([
+            $firstSessionKey => [
+                ['role' => 'user', 'content' => 'Private first restaurant preference'],
+                ['role' => 'assistant', 'content' => 'Private first restaurant answer'],
+            ],
+        ])
+        ->postJson(route('menu.ai.recommendations', $secondMenu), [
+            'provider' => 'gemini',
+            'question' => 'A new isolated request',
+        ])
+        ->assertOk();
+
+    Http::assertSent(function (Request $request): bool {
+        $body = $request->body();
+
+        return ! str_contains($body, 'Private first restaurant preference')
+            && ! str_contains($body, 'Private first restaurant answer')
+            && str_contains($body, 'A new isolated request');
+    });
+});
+
+test('AI conversations are isolated by authenticated user', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => ['parts' => [['text' => 'User isolated answer']]],
+            ]],
+        ]),
+    ]);
+
+    $firstUser = User::factory()->create();
+    $secondUser = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+
+    $firstSessionKey = "ai.conversations.user.{$firstUser->id}.menu.{$menu->id}";
+
+    $this->actingAs($secondUser)
+        ->withSession([
+            $firstSessionKey => [
+                ['role' => 'user', 'content' => 'Private first user preference'],
+                ['role' => 'assistant', 'content' => 'Private first user answer'],
+            ],
+        ])
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'A request by the second user',
+        ])
+        ->assertOk();
+
+    Http::assertSent(function (Request $request): bool {
+        $body = $request->body();
+
+        return ! str_contains($body, 'Private first user preference')
+            && ! str_contains($body, 'Private first user answer')
+            && str_contains($body, 'A request by the second user');
+    });
+});
+
+test('AI conversation retains only the latest three successful exchanges', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => ['parts' => [['text' => 'Repeated answer']]],
+            ]],
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+    $sessionKey = "ai.conversations.user.{$user->id}.menu.{$menu->id}";
+    $response = null;
+
+    foreach (range(1, 4) as $number) {
+        $response = $this->actingAs($user)
+            ->postJson(route('menu.ai.recommendations', $menu), [
+                'provider' => 'gemini',
+                'question' => "Conversation question {$number}",
+            ])
+            ->assertOk();
+    }
+
+    $response->assertSessionHas($sessionKey, function (array $messages): bool {
+        $contents = collect($messages)->pluck('content');
+
+        return count($messages) === 6
+            && ! $contents->contains('Conversation question 1')
+            && $contents->contains('Conversation question 2')
+            && $contents->contains('Conversation question 4');
+    });
+});
+
+test('failed provider request is not stored in AI conversation history', function () {
+    configureAiTestProvider('gemini');
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'error' => ['message' => 'Provider failed'],
+        ], 500),
+    ]);
+
+    $user = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+    $sessionKey = "ai.conversations.user.{$user->id}.menu.{$menu->id}";
+
+    $this->actingAs($user)
+        ->postJson(route('menu.ai.recommendations', $menu), [
+            'provider' => 'gemini',
+            'question' => 'This request must not be remembered',
+        ])
+        ->assertServiceUnavailable()
+        ->assertSessionMissing($sessionKey);
+});
+
+test('conversation reset clears only the selected restaurant', function () {
+    $user = User::factory()->create();
+    ['menu' => $firstMenu] = createAiAssistantCatalog();
+    ['menu' => $secondMenu] = createAiAssistantCatalog(menuName: 'KFC');
+
+    $firstSessionKey = "ai.conversations.user.{$user->id}.menu.{$firstMenu->id}";
+    $secondSessionKey = "ai.conversations.user.{$user->id}.menu.{$secondMenu->id}";
+
+    $this->actingAs($user)
+        ->withSession([
+            $firstSessionKey => [
+                ['role' => 'user', 'content' => 'First menu question'],
+            ],
+            $secondSessionKey => [
+                ['role' => 'user', 'content' => 'Second menu question'],
+            ],
+        ])
+        ->deleteJson(route('menu.ai.conversation.destroy', $firstMenu))
+        ->assertNoContent()
+        ->assertSessionMissing($firstSessionKey)
+        ->assertSessionHas($secondSessionKey);
+});
+
+test('restaurant page restores escaped AI conversation messages', function () {
+    configureAiTestProvider('gemini');
+
+    $user = User::factory()->create();
+    ['menu' => $menu] = createAiAssistantCatalog();
+    $sessionKey = "ai.conversations.user.{$user->id}.menu.{$menu->id}";
+    $unsafeMessage = '<script>alert("conversation")</script>';
+
+    $this->actingAs($user)
+        ->withSession([
+            $sessionKey => [
+                ['role' => 'user', 'content' => $unsafeMessage],
+                ['role' => 'assistant', 'content' => 'Safe restored answer'],
+            ],
+        ])
+        ->get(route('menu.show', $menu))
+        ->assertOk()
+        ->assertSee($unsafeMessage)
+        ->assertDontSee($unsafeMessage, false)
+        ->assertSee('Safe restored answer')
+        ->assertSee('data-ai-assistant-reset', false);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Data\AiConversationMessage;
 use App\Enums\AiProvider;
 use App\Exceptions\AiProviderException;
 use App\Exceptions\AiProviderNotConfiguredException;
@@ -25,11 +26,28 @@ class GeminiProvider implements AiProviderInterface
             && filled(config('services.ai.gemini.model'));
     }
 
-    public function generate(string $systemPrompt, string $userPrompt): string
-    {
+    /**
+     * @param  list<AiConversationMessage>  $history
+     */
+    public function generate(
+        string $systemPrompt,
+        string $userPrompt,
+        array $history = [],
+    ): string {
         if (! $this->configured()) {
             throw new AiProviderNotConfiguredException('Gemini поки не налаштовано.');
         }
+
+        $contents = collect($history)
+            ->map(fn (AiConversationMessage $message): array => [
+                'role' => $message->role === 'assistant' ? 'model' : 'user',
+                'parts' => [['text' => $message->content]],
+            ])
+            ->push([
+                'role' => 'user',
+                'parts' => [['text' => $userPrompt]],
+            ])
+            ->all();
 
         try {
             $response = Http::acceptJson()
@@ -47,10 +65,7 @@ class GeminiProvider implements AiProviderInterface
                     'systemInstruction' => [
                         'parts' => [['text' => $systemPrompt]],
                     ],
-                    'contents' => [[
-                        'role' => 'user',
-                        'parts' => [['text' => $userPrompt]],
-                    ]],
+                    'contents' => $contents,
                     'generationConfig' => [
                         'maxOutputTokens' => 1000,
                         'temperature' => 0.2,

@@ -74,6 +74,7 @@
                     :$menu
                     :providers="$aiProviders"
                     :available-providers="$availableAiProviders"
+                    :conversation="$aiConversation"
                 />
 
                 @can('create', \App\Models\Product::class)

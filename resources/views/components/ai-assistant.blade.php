@@ -2,6 +2,7 @@
     'menu',
     'providers' => [],
     'availableProviders' => [],
+    'conversation' => [],
 ])
 
 @auth
@@ -305,6 +306,7 @@
         class="ai-chat-widget text-start"
         data-cart-url="{{ route('cart_product.store') }}"
         data-cart-page-url="{{ route('menu.cart.index', $menu) }}"
+        data-reset-url="{{ route('menu.ai.conversation.destroy', $menu) }}"
     >
         <section
             id="{{ $assistantId }}-panel"
@@ -317,21 +319,41 @@
                     <div class="fw-bold">AI-помічник</div>
                     <small>{{ $menu->name }}</small>
                 </div>
-                <button
-                    type="button"
-                    class="btn-close btn-close-white"
-                    data-ai-assistant-close
-                    aria-label="Закрити чат"
-                ></button>
+                <div class="d-flex align-items-center gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-light py-1 px-2"
+                        data-ai-assistant-reset
+                    >
+                        Очистити
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white"
+                        data-ai-assistant-close
+                        aria-label="Закрити чат"
+                    ></button>
+                </div>
             </header>
 
             <div data-ai-assistant-messages class="ai-chat-messages">
-                <div
-                    class="ai-chat-message ai-chat-message-assistant"
-                    style="display: block !important; flex: 0 0 auto !important; width: fit-content !important; height: auto !important; min-height: 0 !important; text-align: left !important; align-self: flex-start !important"
-                >
-                    <span class="ai-chat-message-text">Вітаю! 👋 Чим допомогти?</span>
-                </div>
+                @if ($conversation === [])
+                    <div
+                        class="ai-chat-message ai-chat-message-assistant"
+                        style="display: block !important; flex: 0 0 auto !important; width: fit-content !important; height: auto !important; min-height: 0 !important; text-align: left !important; align-self: flex-start !important"
+                    >
+                        <span class="ai-chat-message-text">Вітаю! 👋 Чим допомогти?</span>
+                    </div>
+                @else
+                    @foreach ($conversation as $message)
+                        <div
+                            class="ai-chat-message ai-chat-message-{{ $message['role'] }}"
+                            style="display: block !important; flex: 0 0 auto !important; width: fit-content !important; height: auto !important; min-height: 0 !important; text-align: left !important; align-self: {{ $message['role'] === 'user' ? 'flex-end' : 'flex-start' }} !important"
+                        >
+                            <span class="ai-chat-message-text">{{ $message['content'] }}</span>
+                        </div>
+                    @endforeach
+                @endif
             </div>
 
             <form
@@ -427,6 +449,7 @@
             const panel = root.querySelector('[data-ai-assistant-panel]');
             const toggleButton = root.querySelector('[data-ai-assistant-toggle]');
             const closeButton = root.querySelector('[data-ai-assistant-close]');
+            const resetButton = root.querySelector('[data-ai-assistant-reset]');
             const form = root.querySelector('[data-ai-assistant-form]');
             const questionInput = form.querySelector('[name="question"]');
             const submitButton = root.querySelector('[data-ai-assistant-submit]');
@@ -434,6 +457,8 @@
             const messagesElement = root.querySelector('[data-ai-assistant-messages]');
             const cartUrl = root.dataset.cartUrl;
             const cartPageUrl = root.dataset.cartPageUrl;
+            const resetUrl = root.dataset.resetUrl;
+            const csrfToken = form.querySelector('[name="_token"]').value;
 
             const setPanelOpen = (isOpen) => {
                 panel.classList.toggle('d-none', !isOpen);
@@ -575,6 +600,37 @@
             });
 
             closeButton.addEventListener('click', () => setPanelOpen(false));
+
+            resetButton.addEventListener('click', async () => {
+                resetButton.disabled = true;
+
+                try {
+                    const response = await fetch(resetUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Не вдалося очистити діалог.');
+                    }
+
+                    messagesElement.replaceChildren();
+                    appendMessage('Вітаю! 👋 Чим допомогти?', 'assistant');
+                    statusElement.textContent = 'Діалог очищено.';
+                } catch (error) {
+                    const message = error instanceof Error
+                        ? error.message
+                        : 'Не вдалося очистити діалог.';
+
+                    appendActivity(message, 'error');
+                    statusElement.textContent = message;
+                } finally {
+                    resetButton.disabled = false;
+                }
+            });
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
