@@ -70,6 +70,12 @@
                     </div>
                 </x-card>
 
+                <x-ai-assistant
+                    :$menu
+                    :providers="$aiProviders"
+                    :available-providers="$availableAiProviders"
+                />
+
                 @can('create', \App\Models\Product::class)
                     <x-card class="mt-2 text-end">
                     <a href="{{ route('menu.products.create', $menu) }}"

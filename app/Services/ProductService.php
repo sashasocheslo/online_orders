@@ -39,51 +39,6 @@ class ProductService implements ProductServiceInterface
         ];
     }
 
-    public function searchCatalog(array $filters): array
-    {
-        $productsQuery = Product::query()
-            ->with(['menu', 'category'])
-            ->when(
-                $filters['query'] ?? null,
-                fn ($query, $search) => $query->search($search),
-            )
-            ->when(
-                $filters['menu_id'] ?? null,
-                fn ($query, $menuId) => $query->where('menu_id', $menuId),
-            )
-            ->when(
-                $filters['category_id'] ?? null,
-                fn ($query, $categoryId) => $query->where('category_id', $categoryId),
-            )
-            ->when(
-                array_key_exists('min_price', $filters) && $filters['min_price'] !== null,
-                fn ($query) => $query->where('price', '>=', $filters['min_price']),
-            )
-            ->when(
-                array_key_exists('max_price', $filters) && $filters['max_price'] !== null,
-                fn ($query) => $query->where('price', '<=', $filters['max_price']),
-            );
-
-        $productsQuery = match ($filters['sort'] ?? 'price_asc') {
-            'price_desc' => $productsQuery->orderByDesc('price'),
-            'name' => $productsQuery->orderBy('name'),
-            default => $productsQuery->orderBy('price'),
-        };
-
-        return [
-            'products' => $productsQuery
-                ->paginate(12)
-                ->withQueryString(),
-            'menus' => Menu::query()
-                ->orderBy('name')
-                ->get(),
-            'categories' => Category::query()
-                ->whereHas('products')
-                ->orderBy('name')
-                ->get(),
-        ];
-    }
-
     public function createProduct(Menu $menu): array
     {
         $categories = Category::all();

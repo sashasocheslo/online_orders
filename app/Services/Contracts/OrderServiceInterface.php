@@ -17,4 +17,6 @@ interface OrderServiceInterface
     public function listForUser(User $user): Collection;
 
     public function loadDetails(Order $order): Order;
+
+    public function deleteOrder(Order $order): void;
 }
