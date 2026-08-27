@@ -5,10 +5,12 @@ namespace App\Providers;
 use App\Models\Cart;
 use App\Models\CartProduct;
 use App\Models\Comment;
+use App\Models\Order;
 use App\Models\Product;
 use App\Policies\CartPolicy;
 use App\Policies\CartProductPolicy;
 use App\Policies\CommentPolicy;
+use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Services\AuthService;
 use App\Services\CartProductService;
@@ -49,5 +51,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CartProduct::class, CartProductPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Comment::class, CommentPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
     }
 }

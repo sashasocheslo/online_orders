@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartProductController;
 use App\Http\Controllers\CatalogSearchController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SocialiteController;
 use App\Http\Controllers\StripeController;
@@ -46,8 +47,17 @@ Route::middleware('auth')->group(function () {
     Route::resource('cart_product', CartProductController::class)
         ->only(['store', 'update', 'destroy']);
 
-    Route::get('/order/create', [StripeController::class, 'create'])
-        ->name('order.create');
+    Route::get('/menu/{menu}/orders/create', [OrderController::class, 'create'])
+        ->name('menu.orders.create');
+
+    Route::post('/menu/{menu}/orders', [OrderController::class, 'store'])
+        ->name('menu.orders.store');
+
+    Route::get('/orders', [OrderController::class, 'index'])
+        ->name('orders.index');
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->name('orders.show');
 
     Route::post('/stripe/payment', [StripeController::class, 'payment'])
         ->name('stripe.payment');
