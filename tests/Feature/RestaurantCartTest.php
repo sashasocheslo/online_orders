@@ -305,3 +305,24 @@ test('restaurant cart page displays only the selected restaurants cart', functio
         ->assertSeeText($secondMenu->name)
         ->assertSeeText($secondProduct->name);
 });
+
+test('cart link is hidden until a restaurant is selected', function () {
+    $user = User::factory()->create();
+    ['menu' => $menu] = createRestaurantCartProduct(
+        'KFC',
+        'Navigation Product',
+    );
+
+    $this->actingAs($user)
+        ->get(route('menu.index'))
+        ->assertOk()
+        ->assertDontSee('bi-cart-fill', false);
+
+    $this->actingAs($user)
+        ->get(route('menu.show', $menu))
+        ->assertOk()
+        ->assertSee('aria-label="На головне меню"', false)
+        ->assertSee('href="'.route('menu.index').'"', false)
+        ->assertSee(route('menu.cart.index', $menu), false)
+        ->assertSee('bi-cart-fill', false);
+});

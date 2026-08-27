@@ -24,9 +24,10 @@
 ---
 
 ## Технології
-- **Backend:** PHP 8.x, Laravel 11 
+- **Backend:** PHP 8.5, Laravel 13
 - **Frontend:** Blade, Bootstrap 5, HTML5, CSS3  
 - **База даних:** MariaDB / MySQL  
+- **API authentication:** Laravel Sanctum
 - **API платежів:** Stripe  
 - **Інфраструктура:** Docker, Docker Compose  
 - **IDE:** Visual Studio Code  
@@ -42,15 +43,26 @@
 
 ## RESTful API — основні маршрути
 
-- `GET /menus` — отримати список меню  
-- `GET /menus/{id}` — переглянути конкретне меню  
-- `GET /menus/{id}/products` — список продуктів у меню  
-- `POST /menus/{id}/products` — додати продукт у меню  
-- `PUT /menus/{id}/products/{id}` — оновити продукт  
-- `DELETE /menus/{id}/products/{id}` — видалити продукт  
-- `POST /products/{id}/comments` — додати коментар  
-- `GET /cart-products` — перегляд кошика  
-- `POST /payments` — оплата через Stripe  
+Публічні маршрути:
+
+- `POST /api/auth/register` — зареєструвати користувача та отримати Bearer token;
+- `POST /api/auth/login` — увійти та отримати Bearer token;
+- `GET /api/menus` — отримати список меню;
+- `GET /api/menus/{menu}` — переглянути конкретне меню;
+- `GET /api/menus/{menu}/products` — отримати товари меню.
+
+Захищені маршрути вимагають заголовок `Authorization: Bearer <token>`:
+
+- `GET /api/auth/me` — отримати поточного користувача;
+- `DELETE /api/auth/logout` — відкликати поточний token;
+- `GET|POST /api/cart-products` — переглядати кошики та додавати товар;
+- `PATCH|DELETE /api/cart-products/{cart_product}` — змінювати або видаляти власну позицію;
+- `POST /api/menus/{menu}/products` — створити товар відповідно до policy;
+- `PATCH|DELETE /api/menus/{menu}/products/{product}` — оновити або видалити товар відповідно до policy;
+- `POST /api/menus/{menu}/products/{product}/comments` — додати коментар;
+- `DELETE /api/comments/{comment}` — видалити дозволений policy коментар.
+
+Plain-text token показується лише у відповіді register/login. У базі даних Sanctum зберігає його hash.
 
 ---
 
@@ -59,7 +71,7 @@
 ### Вимоги
 - **Docker**  
 - **Docker Compose**  
-- **PHP >= 8.1**, **Composer** (для локальної роботи без контейнерів)  
+- **PHP >= 8.5**, **Composer** (для локальної роботи без контейнерів)
 
 ### Інструкція з запуску
 ```bash

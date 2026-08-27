@@ -1,10 +1,8 @@
 <?php
 
-use App\Data\CheckoutSessionData;
 use App\Data\StripeEventData;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
-use App\Exceptions\InvalidWebhookException;
 use App\Mail\OrderConfirmation;
 use App\Models\Menu;
 use App\Models\Order;
@@ -13,47 +11,9 @@ use App\Models\User;
 use App\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Tests\Fakes\FakeStripePaymentGateway;
 
 pest()->use(RefreshDatabase::class);
-
-class FakeStripePaymentGateway implements PaymentGatewayInterface
-{
-    /** @var array<int, array<string, int|string>> */
-    public array $checkoutCalls = [];
-
-    public ?StripeEventData $nextEvent = null;
-
-    public bool $rejectWebhook = false;
-
-    public function createCheckoutSession(Order $order, Payment $payment): CheckoutSessionData
-    {
-        $this->checkoutCalls[] = [
-            'order_id' => $order->id,
-            'payment_id' => $payment->id,
-            'amount_minor' => $payment->amount_minor,
-            'currency' => $payment->currency,
-            'idempotency_key' => $payment->idempotency_key,
-        ];
-
-        return new CheckoutSessionData(
-            sessionId: 'cs_test_'.$payment->id,
-            checkoutUrl: 'https://checkout.stripe.test/session/'.$payment->id,
-        );
-    }
-
-    public function constructWebhookEvent(string $payload, string $signature): StripeEventData
-    {
-        if ($this->rejectWebhook) {
-            throw new InvalidWebhookException('Invalid test signature.');
-        }
-
-        if ($this->nextEvent === null) {
-            throw new InvalidWebhookException('No fake event configured.');
-        }
-
-        return $this->nextEvent;
-    }
-}
 
 function createStripePaymentOrder(
     User $user,
