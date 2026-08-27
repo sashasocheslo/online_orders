@@ -24,7 +24,13 @@ class MenuService implements MenuServiceInterface
 
     public function getMenuDetails(Menu $menu, Request $request): array
     {
-        $categories = Category::all();
+        $categories = Category::query()
+            ->whereHas(
+                'products',
+                fn ($query) => $query->where('menu_id', $menu->id),
+            )
+            ->orderBy('id')
+            ->get();
 
         $data = $this->productService->getProducts($menu, $request);
 

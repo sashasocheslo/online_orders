@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Tests\Fixtures\AiRecommendationFixture;
 
 pest()->use(RefreshDatabase::class);
 
@@ -31,26 +32,7 @@ function createAiAssistantCatalog(
     string $menuName = "McDonald's",
     string $productName = 'Тестовий бургер AI',
 ): array {
-    $menu = Menu::query()->create([
-        'name' => $menuName,
-        'image' => 'menus/ai-test.png',
-    ]);
-
-    $category = Category::query()->create([
-        'name' => 'AI тестова категорія',
-    ]);
-
-    $product = Product::query()->create([
-        'name' => $productName,
-        'price' => 120,
-        'description' => 'Ситний негострий тестовий бургер.',
-        'size' => 'Стандартний',
-        'image' => 'products/ai-test.png',
-        'menu_id' => $menu->id,
-        'category_id' => $category->id,
-    ]);
-
-    return compact('menu', 'category', 'product');
+    return AiRecommendationFixture::catalog($menuName, $productName);
 }
 
 function configureAiTestProvider(string $provider): void
@@ -72,10 +54,7 @@ function configureAiTestProvider(string $provider): void
  */
 function aiRecommendationJson(string $message, array $productIds = []): string
 {
-    return json_encode([
-        'message' => $message,
-        'product_ids' => $productIds,
-    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    return AiRecommendationFixture::response($message, $productIds);
 }
 
 test('AI assistant is hidden from guests and its endpoint requires authentication', function () {

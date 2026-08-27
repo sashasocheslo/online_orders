@@ -54,16 +54,14 @@
                 <x-card>
                     <div class="d-flex flex-nowrap flex-md-wrap overflow-auto overflow-md-visible text-center w-100">
                         @foreach ($categories as $category)
-                            @if ($category->products()->where('menu_id', 3)->exists())
-                                <div class="flex-shrink-0 flex-md-fill px-2">
-                                    <x-link-button
-                                        class="px-3 py-2 small fw-medium w-100 min-w-120"
-                                        :href="route('menu.show', [$menu] + [...request()->query(), 'categories' => $category->id])"
-                                        :active="request('categories') == $category->id">
-                                        {{ $category->name }}
-                                    </x-link-button>
-                                </div>
-                            @endif
+                            <div class="flex-shrink-0 flex-md-fill px-2">
+                                <x-link-button
+                                    class="px-3 py-2 small fw-medium w-100 min-w-120"
+                                    :href="route('menu.show', [$menu] + [...request()->query(), 'categories' => $category->id])"
+                                    :active="request('categories') == $category->id">
+                                    {{ $category->name }}
+                                </x-link-button>
+                            </div>
                         @endforeach
                     </div>
                 </x-card>
