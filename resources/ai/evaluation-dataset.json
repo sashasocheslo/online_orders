@@ -1,0 +1,94 @@
+{
+    "version": "1.0.0",
+    "restaurant": "Контрольне меню дипломного дослідження",
+    "products": [
+        {
+            "id": 1,
+            "name": "Класичний бургер",
+            "description": "Бургер із яловичиною, сиром і овочами.",
+            "price": 120,
+            "size": "Стандартний",
+            "category": "Бургери"
+        },
+        {
+            "id": 2,
+            "name": "Гострий бургер",
+            "description": "Бургер із яловичиною, перцем чилі та гострим соусом.",
+            "price": 155,
+            "size": "Стандартний",
+            "category": "Бургери"
+        },
+        {
+            "id": 3,
+            "name": "Вегетаріанський боул",
+            "description": "Овочі, нут, рис і соус без м'яса.",
+            "price": 145,
+            "size": "350 г",
+            "category": "Основні страви"
+        },
+        {
+            "id": 4,
+            "name": "Овочевий салат",
+            "description": "Помідори, огірки, зелень та оливкова олія.",
+            "price": 95,
+            "size": "250 г",
+            "category": "Салати"
+        },
+        {
+            "id": 5,
+            "name": "Картопля фрі",
+            "description": "Хрустка картопля з сіллю.",
+            "price": 70,
+            "size": "150 г",
+            "category": "Закуски"
+        },
+        {
+            "id": 6,
+            "name": "Суші Філадельфія",
+            "description": "Рол із лососем, крем-сиром та огірком.",
+            "price": 210,
+            "size": "8 шт.",
+            "category": "Суші"
+        },
+        {
+            "id": 7,
+            "name": "Сімейна піца",
+            "description": "Велика піца з куркою, сиром та овочами для кількох людей.",
+            "price": 260,
+            "size": "40 см",
+            "category": "Піца"
+        }
+    ],
+    "scenarios": [
+        {
+            "id": "budget-under-100",
+            "question": "Порадь будь-яку страву до 100 грн.",
+            "allowed_product_ids": [4, 5],
+            "expected_product_ids": [4, 5]
+        },
+        {
+            "id": "vegetarian-main",
+            "question": "Хочу ситну вегетаріанську основну страву без м'яса.",
+            "allowed_product_ids": [3],
+            "expected_product_ids": [3]
+        },
+        {
+            "id": "spicy-burger-under-160",
+            "question": "Порадь гострий бургер до 160 грн.",
+            "allowed_product_ids": [2],
+            "expected_product_ids": [2]
+        },
+        {
+            "id": "impossible-sushi-budget",
+            "question": "Хочу суші до 200 грн. Не пропонуй інші категорії.",
+            "allowed_product_ids": [],
+            "expected_product_ids": []
+        },
+        {
+            "id": "family-dinner",
+            "question": "Що краще взяти на вечерю для кількох людей?",
+            "allowed_product_ids": [7],
+            "expected_product_ids": [7]
+        }
+    ]
+}
