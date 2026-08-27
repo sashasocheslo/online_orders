@@ -9,7 +9,11 @@
                     </div>
                 </div>
 
-                <span class="badge text-bg-warning fs-6">
+                <span @class([
+                    'badge fs-6',
+                    'text-bg-success' => $order->status === \App\Enums\OrderStatus::Paid,
+                    'text-bg-warning' => $order->status !== \App\Enums\OrderStatus::Paid,
+                ])>
                     {{ $order->status->label() }}
                 </span>
             </div>
@@ -74,9 +78,25 @@
                 <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">
                     До історії замовлень
                 </a>
-                <span class="text-muted">
-                    Оплату підключимо на уроці №8.
-                </span>
+
+                <div class="text-end">
+                    @if ($order->payment !== null)
+                        <div class="text-muted small mb-2">
+                            Стан платежу: {{ $order->payment->status->label() }}
+                        </div>
+                    @endif
+
+                    @can('pay', $order)
+                        @if ($order->status === \App\Enums\OrderStatus::PendingPayment)
+                            <form action="{{ route('orders.payment.store', $order) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-success">
+                                    Оплатити {{ number_format($order->total, 2, ',', ' ') }} ₴ через Stripe
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
+                </div>
             </div>
         </div>
     </div>

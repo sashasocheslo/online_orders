@@ -4,7 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartProductController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\StripeController;
 use Illuminate\Support\Facades\Route;
 
 Route::name('api.')->group(function () {
@@ -28,7 +27,4 @@ Route::name('api.')->group(function () {
     // ---- Кошик ----
     Route::apiResource('cart-products', CartProductController::class)
         ->only(['index', 'store', 'destroy']);
-
-    // ---- Stripe (оплата API) ----
-    Route::post('/payments', [StripeController::class, 'payment'])->name('payments.store');
 });

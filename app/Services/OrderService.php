@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
-use App\Mail\OrderConfirmation;
 use App\Models\Cart;
 use App\Models\CartProduct;
 use App\Models\Menu;
@@ -11,9 +10,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\Contracts\OrderServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class OrderService implements OrderServiceInterface
@@ -121,17 +118,8 @@ class OrderService implements OrderServiceInterface
             'menu',
             'user',
             'items',
+            'payment',
             'statusHistory.changedBy',
         ]);
-    }
-
-    public function sendOrderConfirmation(array $data): void
-    {
-        $email = Auth::user()->email;
-        Mail::to($email)->send(new OrderConfirmation(
-            $data['phone_number'],
-            $data['delivery_address'],
-            $data['country']
-        ));
     }
 }
